@@ -1,0 +1,6 @@
+model_checkpoint_path: "s_1280-lr_3.0517578125e-05-g_0.994140625_32768.ckpt"
+all_model_checkpoint_paths: "s_1280-lr_3.0517578125e-05-g_0.994140625_2048.ckpt"
+all_model_checkpoint_paths: "s_1280-lr_3.0517578125e-05-g_0.994140625_4096.ckpt"
+all_model_checkpoint_paths: "s_1280-lr_3.0517578125e-05-g_0.994140625_8192.ckpt"
+all_model_checkpoint_paths: "s_1280-lr_3.0517578125e-05-g_0.994140625_16384.ckpt"
+all_model_checkpoint_paths: "s_1280-lr_3.0517578125e-05-g_0.994140625_32768.ckpt"
