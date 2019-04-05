@@ -1,0 +1,126 @@
+% Encoding: UTF-8
+
+@Article{Loiacono2013,
+  author      = {Daniele Loiacono and Luigi Cardamone and Pier Luca Lanzi},
+  title       = {Simulated Car Racing Championship: Competition Software Manual},
+  journal     = {CoRR},
+  year        = {2013},
+  volume      = {abs/1304.1672},
+  abstract    = {This manual describes the competition software for the Simulated Car Racing Championship, an international competition held at major conferences in the field of Evolutionary Computation and in the field of Computational Intelligence and Games. It provides an overview of the architecture, the instructions to install the software and to run the simple drivers provided in the package, the description of the sensors and the actuators.},
+  date        = {2013-04-05},
+  eprint      = {http://arxiv.org/abs/1304.1672v2},
+  eprintclass = {cs.AI},
+  eprinttype  = {arXiv},
+  file        = {:http\://arxiv.org/pdf/1304.1672v2:PDF},
+  keywords    = {cs.AI, cs.CE},
+}
+
+@Article{wymann2000torcs,
+  author  = {Wymann, Bernhard and Espi{\'e}, Eric and Guionneau, Christophe and Dimitrakakis, Christos and Coulom, R{\'e}mi and Sumner, Andrew},
+  title   = {Torcs, the open racing car simulator},
+  journal = {Software available at http://torcs. sourceforge. net},
+  year    = {2000},
+  volume  = {4},
+  number  = {6},
+}
+
+@InProceedings{munoz2009controller,
+  author       = {Munoz, Jorge and Gutierrez, German and Sanchis, Araceli},
+  title        = {Controller for torcs created by imitation},
+  booktitle    = {2009 IEEE Symposium on Computational Intelligence and Games},
+  year         = {2009},
+  pages        = {271--278},
+  organization = {IEEE},
+}
+
+@Article{Sallab2017,
+  author    = {AhmadEL Sallab and Mohammed Abdou and Etienne Perot and Senthil Yogamani},
+  title     = {Deep Reinforcement Learning framework for Autonomous Driving},
+  journal   = {Electronic Imaging},
+  year      = {2017},
+  volume    = {2017},
+  number    = {19},
+  pages     = {70--76},
+  month     = {jan},
+  doi       = {10.2352/issn.2470-1173.2017.19.avm-023},
+  publisher = {Society for Imaging Science {\&} Technology},
+}
+
+@InProceedings{Loiacono2008,
+  author    = {Daniele Loiacono and Julian Togelius and Pier Luca Lanzi and Leonard Kinnaird-Heether and Simon M. Lucas and Matt Simmerson and Diego Perez and Robert G. Reynolds and Yago Saez},
+  title     = {The {WCCI} 2008 simulated car racing competition},
+  booktitle = {2008 {IEEE} Symposium On Computational Intelligence and Games},
+  year      = {2008},
+  month     = {dec},
+  publisher = {{IEEE}},
+  doi       = {10.1109/cig.2008.5035630},
+}
+
+@InProceedings{Cardamone2009,
+  author    = {Luigi Cardamone and Daniele Loiacono and Pier Luca Lanzi},
+  title     = {Evolving competitive car controllers for racing games with neuroevolution},
+  booktitle = {Proceedings of the 11th Annual conference on Genetic and evolutionary computation - {GECCO} {\textquotesingle}09},
+  year      = {2009},
+  publisher = {{ACM} Press},
+  doi       = {10.1145/1569901.1570060},
+}
+
+@Article{lillicrap2015continuous,
+  author  = {Lillicrap, Timothy P and Hunt, Jonathan J and Pritzel, Alexander and Heess, Nicolas and Erez, Tom and Tassa, Yuval and Silver, David and Wierstra, Daan},
+  title   = {Continuous control with deep reinforcement learning},
+  journal = {arXiv preprint arXiv:1509.02971},
+  year    = {2015},
+}
+
+@Article{watkins1992q,
+  author    = {Watkins, Christopher JCH and Dayan, Peter},
+  title     = {Q-learning},
+  journal   = {Machine learning},
+  year      = {1992},
+  volume    = {8},
+  number    = {3-4},
+  pages     = {279--292},
+  publisher = {Springer},
+}
+
+@PhdThesis{watkins1989learning,
+  author = {Watkins, Christopher John Cornish Hellaby},
+  title  = {Learning from delayed rewards},
+  school = {King's College, Cambridge},
+  year   = {1989},
+}
+
+@InProceedings{7568309,
+  author    = {G. D'Angelo and S. Ferretti and V. Ghini},
+  title     = {Simulation of the Internet of Things},
+  booktitle = {2016 International Conference on High Performance Computing Simulation (HPCS)},
+  year      = {2016},
+  pages     = {1-8},
+  month     = {July},
+  doi       = {10.1109/HPCSim.2016.7568309},
+  keywords  = {Internet of Things;digital simulation;multi-agent systems;smart cities;Internet of Things simulation;IoT simulation;PADS approach;agent-based adaptive parallel and distributed simulation;large-scale smart cities;massively populated IoT environment;multilevel simulation;real-time execution;scalability;smart territories simulation;Adaptation models;Computational modeling;Internet of things;Load modeling;Scalability;Sensors;Synchronization;Internet of Things;Parallel and Distributed Simulation;Simulation;Smart Cities;Wireless},
+}
+
+@Misc{TORCS,
+  author       = {Bernhard Wymann, Eric Espi{\'e}, Christophe Guionneau, Christos Dimitrakakis, R{\'e}mi Coulom, Andrew Sumner},
+  title        = {{TORCS}, {T}he {O}pen {R}acing {C}ar {S}imulator},
+  howpublished = {http://www.torcs.org},
+  year         = {2014},
+}
+
+@Article{koutnik2013evolving,
+  author = {Koutn{\'\i}k, Jan and Cuccu, Giuseppe and Schmidhuber, J{\"u}rgen and Gomez, Faustino},
+  title  = {Evolving large-scale neural networks for vision-based torcs},
+  year   = {2013},
+}
+
+@InProceedings{Nikulin2018,
+  author    = {Vsevolod Nikulin and Albert Podusenko and Ivan Tanev and Katsunori Shimohara},
+  title     = {Evolving the autosteering of a car featuring a realistically simulated steering response},
+  booktitle = {Proceedings of the Genetic and Evolutionary Computation Conference on - {GECCO} {\textquotesingle}18},
+  year      = {2018},
+  publisher = {{ACM} Press},
+  doi       = {10.1145/3205455.3205547},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}
