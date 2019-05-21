@@ -1,0 +1,59 @@
+% Encoding: UTF-8
+
+@Article{Loiacono2013,
+  author      = {Daniele Loiacono and Luigi Cardamone and Pier Luca Lanzi},
+  title       = {Simulated Car Racing Championship: Competition Software Manual},
+  journal     = {CoRR},
+  year        = {2013},
+  volume      = {abs/1304.1672},
+  abstract    = {This manual describes the competition software for the Simulated Car Racing Championship, an international competition held at major conferences in the field of Evolutionary Computation and in the field of Computational Intelligence and Games. It provides an overview of the architecture, the instructions to install the software and to run the simple drivers provided in the package, the description of the sensors and the actuators.},
+  date        = {2013-04-05},
+  eprint      = {http://arxiv.org/abs/1304.1672v2},
+  eprintclass = {cs.AI},
+  eprinttype  = {arXiv},
+  file        = {:http\://arxiv.org/pdf/1304.1672v2:PDF},
+  keywords    = {cs.AI, cs.CE},
+}
+
+@Article{wymann2000torcs,
+  author  = {Wymann, Bernhard and Espi{\'e}, Eric and Guionneau, Christophe and Dimitrakakis, Christos and Coulom, R{\'e}mi and Sumner, Andrew},
+  title   = {Torcs, the open racing car simulator},
+  journal = {Software available at http://torcs. sourceforge. net},
+  year    = {2000},
+  volume  = {4},
+  number  = {6},
+}
+
+@InProceedings{munoz2009controller,
+  author       = {Munoz, Jorge and Gutierrez, German and Sanchis, Araceli},
+  title        = {Controller for torcs created by imitation},
+  booktitle    = {2009 IEEE Symposium on Computational Intelligence and Games},
+  year         = {2009},
+  pages        = {271--278},
+  organization = {IEEE},
+}
+
+@Article{Sallab2017,
+  author    = {AhmadEL Sallab and Mohammed Abdou and Etienne Perot and Senthil Yogamani},
+  title     = {Deep Reinforcement Learning framework for Autonomous Driving},
+  journal   = {Electronic Imaging},
+  year      = {2017},
+  volume    = {2017},
+  number    = {19},
+  pages     = {70--76},
+  month     = {jan},
+  doi       = {10.2352/issn.2470-1173.2017.19.avm-023},
+  publisher = {Society for Imaging Science {\&} Technology},
+}
+
+@InProceedings{Loiacono2008,
+  author    = {Daniele Loiacono and Julian Togelius and Pier Luca Lanzi and Leonard Kinnaird-Heether and Simon M. Lucas and Matt Simmerson and Diego Perez and Robert G. Reynolds and Yago Saez},
+  title     = {The {WCCI} 2008 simulated car racing competition},
+  booktitle = {2008 {IEEE} Symposium On Computational Intelligence and Games},
+  year      = {2008},
+  month     = {dec},
+  publisher = {{IEEE}},
+  doi       = {10.1109/cig.2008.5035630},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}

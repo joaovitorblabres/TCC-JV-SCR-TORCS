@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import gym
 import sys
 import os
 import time
@@ -10,13 +9,8 @@ learning_rate_index = int(sys.argv[1])
 gamma_index = int(sys.argv[2])
 test_or_train = sys.argv[3]
 
-env = gym.make('LunarLander-v2')
-env = env.unwrapped
-# Policy gradient has high variance, seed for reproducability
-
 ## ENVIRONMENT Hyperparameters
-state_size = 8
-action_size = env.action_space.n
+state_size = 29
 
 ## TRAINING Hyperparameters
 min_episodes_exp = 9
