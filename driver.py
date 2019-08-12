@@ -7,6 +7,8 @@ Created on Apr 4, 2012
 import msgParser
 import carState
 import carControl
+import torcs_MODELO as tm
+import numpy as np
 
 class Driver(object):
     '''
@@ -45,13 +47,18 @@ class Driver(object):
         return self.parser.stringify({'init': self.angles})
 
     def drive(self, msg):
-        self.state.setFromMsg(msg)
+        new_msg = self.state.setFromMsg(msg)
 
-        self.steer()
-
-        self.gear()
-
-        self.speed()
+        ## ADICIONAR O TREINAMENTO AQUI
+        print(new_msg)
+        action = tm.train(new_msg)
+        #action = tm.train(np.array(n))
+        print(action)
+        # self.steer()
+        #
+        # self.gear()
+        #
+        # self.speed()
 
         return self.control.toMsg()
 

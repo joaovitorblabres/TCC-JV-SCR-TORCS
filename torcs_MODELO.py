@@ -5,12 +5,16 @@ import os
 import time
 import math
 
-learning_rate_index = int(sys.argv[1])
-gamma_index = int(sys.argv[2])
-test_or_train = sys.argv[3]
+learning_rate_index = 2
+gamma_index = 2
+#test_or_train = sys.argv[3]
+# learning_rate_index = int(sys.argv[1])
+# gamma_index = int(sys.argv[2])
+# test_or_train = sys.argv[3]
 
 ## ENVIRONMENT Hyperparameters
-state_size = 29
+state_size = 79
+action_size = 29
 
 ## TRAINING Hyperparameters
 min_episodes_exp = 9
@@ -94,12 +98,30 @@ with tf.name_scope("inputs"):
 		train_opt = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 config = tf.ConfigProto(allow_soft_placement = True)
-def train():
-	with tf.device('/device:GPU:0'):
-		env.seed(4937)
-		np.random.seed(71)
 
-		writer = tf.summary.FileWriter("./results/log/lr_" + str(learning_rate) + "/g_" + str(gamma) + "/")
+def lng_trans_prime(obs):
+	"""
+	Reward longitudal velocity projected on track axis,
+	with a penality for transverse velocity.
+	"""
+	print(obs)
+	speedX = np.array([float(i) for i in obs['speedX']])
+	# Track distance
+	trackPos = np.array([float(i) for i in obs['trackPos']])
+	angle = float(obs['angle'][0])
+	reward = speedX * np.cos(angle) - np.abs(speedX * np.sin(angle)) - np.abs(speedX * angle)
+	return reward
+
+allRewards = []
+total_rewards = 0
+maximumRewardRecorded = 0
+episode = 0
+episode_states, episode_actions, episode_rewards = [],[],[]
+
+writer = tf.summary.FileWriter("./results/log/lr_" + str(learning_rate) + "/g_" + str(gamma) + "/")
+def train(msg):
+	with tf.device('/device:CPU:0'):
+		np.random.seed(4937)
 		## Losses
 		tf.summary.scalar("Loss", loss)
 		## Reward mean
@@ -108,192 +130,191 @@ def train():
 		tf.summary.scalar("Reward", episode_rewards_sum_)
 		write_op = tf.summary.merge_all()
 
-		allRewards = []
-		total_rewards = 0
-		maximumRewardRecorded = 0
-		episode = 0
-		episode_states, episode_actions, episode_rewards = [],[],[]
 
 		with tf.Session(config = config) as sess:
 			sess.run(tf.global_variables_initializer())
 
-			for episode in range(0, max_episodes):
 
-				episode_rewards_sum = 0
+			episode_rewards_sum = 0
 
-				# Launch the game
-				state = env.reset()
+			# Launch the game
+			state = msg
+			#(angle 0.00894148)(curLapTime -0.982)(damage 0)(distFromStart 5759.1)(distRaced 0)(fuel 94)(gear 0)(lastLapTime 0)
+			#(opponents 200 10.6503 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200)
+			#(racePos 1)(rpm 942.478)(speedX 0.000308602)(speedY 0.00128389)(speedZ -0.000193009)
+			#(track 7.33374 7.60922 8.50537 10.4385 14.7757 21.468 27.865 39.8075 70.6072 200 49.8655 21.1133 13.9621 10.5624 7.24717 5.14528 4.2136 3.78723 3.66663)
+			#(trackPos -0.333363)(wheelSpinVel 0 0 0 0)(z 0.345256)(focus -1 -1 -1 -1 -1)
 
-				# env.render()
-				step = 0
-				while True:
-					step += 1
-
-					# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
-					action_probability_distribution = sess.run(action_distribution, feed_dict={input_: state.reshape([1, state_size])})
-
-					action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
-
-					# Perform a
-					new_state, reward, done, info = env.step(action)
-
-					# Store s
-					episode_states.append(state)
-
-					# One-Hot Encoding
-					action_ = np.zeros(action_size)
-					action_[action] = 1
-
-					# Store a
-					episode_actions.append(action_)
-
-					# Store r
-					episode_rewards.append(reward)
-					if done or (step == max_steps):
-						# Calculate sum reward
-						episode_rewards_sum = np.sum(episode_rewards)
-
-						allRewards.append(episode_rewards_sum)
-
-						total_rewards = np.sum(allRewards)
-
-						# Mean reward
-						mean_reward = np.divide(total_rewards, episode+1)
-
-						maximumRewardRecorded = np.amax(allRewards)
-
-						print("==========================================")
-						print("Episode:", episode)
-						print("Reward:", episode_rewards_sum)
-						print("Steps for this Episode:", step)
-						print("Mean Reward:", mean_reward)
-						print("Max reward so far:", maximumRewardRecorded)
-
-						# Calculate discounted reward
-						discounted_episode_rewards = discount_and_normalize_rewards(episode_rewards)
-
-						# Feedforward, gradient and backpropagation
-						loss_, _ = sess.run([loss, train_opt], feed_dict={input_: np.vstack(np.array(episode_states)),
-																		 actions: np.vstack(np.array(episode_actions)),
-																		 discounted_episode_rewards_: discounted_episode_rewards
-																		})
-
-						# Write TF Summaries
-						summary = sess.run(write_op, feed_dict={input_: np.vstack(np.array(episode_states)),
-																		 actions: np.vstack(np.array(episode_actions)),
-																		 discounted_episode_rewards_: discounted_episode_rewards,
-																			mean_reward_: mean_reward,
-																			episode_rewards_sum_: episode_rewards_sum
-																		})
-
-						if episode + 1 in [2**i for i in range(min_episodes_exp, max_episodes_exp + 1)]:
-							# Save Model
-							saver.save(sess, ckpt_paths[int(math.log(episode + 1, 2)) - min_episodes_exp])
-							print("==========================================")
-							print("Model saved")
-
-						writer.add_summary(summary, episode)
-						writer.flush()
-
-						# Reset the transition stores
-						episode_states, episode_actions, episode_rewards = [],[],[]
-
-						break
-
-					state = new_state
-
-
-def test():
-	with tf.device('/device:GPU:0'):
-
-		env.seed(4937)
-		np.random.seed(71)
-
-		with tf.Session() as sess:
-			# Load the model
-			saver.restore(sess, ckpt_path)
-
-			rewards = []
-			for episode in range(max_episodes_evaluate):
-				state = env.reset()
-				done = False
-				total_rewards = 0
-				print("****************************************************")
-				print("EPISODE", episode)
-
-				step = 0
-				while True:
-					step += 1
-					# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
-					action_probability_distribution = sess.run(action_distribution, feed_dict={input_: state.reshape([1, state_size])})
-					#print(action_probability_distribution)
-					action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
-
-					new_state, reward, done, info = env.step(action)
-
-					total_rewards += reward
-
-					if done or (step == max_steps):
-						rewards.append(total_rewards)
-						print("Score:", total_rewards)
-						break
-					state = new_state
-
-			env.close()
-			print("****************************************************")
-			print("Score over time:", str(sum(rewards) / max_episodes_evaluate))
-			print("****************************************************")
-
-def watch():
-	with tf.Session() as sess:
-		# Load the model
-		saver.restore(sess, ckpt_path)
-
-		while True:
-			state = env.reset()
-			done = False
-			total_rewards = 0
-
+			# env.render()
 			step = 0
-			while True:
-				step += 1
-				env.render()
-				# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
-				action_probability_distribution = sess.run(action_distribution, feed_dict={input_: state.reshape([1, state_size])})
-				#print(action_probability_distribution)
-				action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
+			#step += 1
+			n = []
+			for key, val in msg.items():
+				for i in val:
+					n.append(i)
+			new = np.array(n)
+			# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
+			action_probability_distribution = sess.run(action_distribution, feed_dict={input_: new.reshape([1, state_size])})
 
-				new_state, reward, done, info = env.step(action)
+			action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
 
-				total_rewards += reward
+			# Perform a
+			reward = lng_trans_prime(msg)
 
-				if done or (step == max_steps):
-					print("Score:", total_rewards)
-					break
+			# Store s
+			episode_states.append(state)
 
-				state = new_state
+			# One-Hot Encoding
+			action_ = np.zeros(action_size)
+			action_[action] = 1
 
-# Setup TensorBoard Writer
-ckpt_folder = "results/lr_" + str(learning_rate) + "/g_" + str(gamma) + "/"
-ckpt_filename = "s_" + str(max_steps) + "-lr_" + str(learning_rate) + "-g_" + str(gamma)
-ckpt_paths = []
-for i in range(min_episodes_exp, max_episodes_exp + 1):
-	ckpt_paths.append("./" + ckpt_folder + ckpt_filename + "_" + str(2**i) + ".ckpt")
+			# Store a
+			episode_actions.append(action_)
 
-saver = tf.train.Saver()
+			# Store r
+			episode_rewards.append(reward)
+			'''
+			if (step == max_steps):
+				# Calculate sum reward
+				episode_rewards_sum = np.sum(episode_rewards)
 
-if test_or_train == 'train':
-	if not os.path.exists(ckpt_folder):
-		os.makedirs(ckpt_folder)
-	train()
+				allRewards.append(episode_rewards_sum)
 
-else:
-	test_episodes = int(sys.argv[4]) - min_episodes_exp
+				total_rewards = np.sum(allRewards)
 
-	if not os.path.isfile(ckpt_paths[test_episodes] + ".index"):
-		print("Checkpoint not found!")
-		exit()
+				# Mean reward
+				mean_reward = np.divide(total_rewards, episode+1)
 
-	ckpt_path = ckpt_paths[test_episodes]
-	test()
-	watch()
+				maximumRewardRecorded = np.amax(allRewards)
+
+				print("==========================================")
+				print("Episode:", episode)
+				print("Reward:", episode_rewards_sum)
+				print("Steps for this Episode:", step)
+				print("Mean Reward:", mean_reward)
+				print("Max reward so far:", maximumRewardRecorded)
+
+				# Calculate discounted reward
+				discounted_episode_rewards = discount_and_normalize_rewards(episode_rewards)
+
+				# Feedforward, gradient and backpropagation
+				loss_, _ = sess.run([loss, train_opt], feed_dict={input_: np.vstack(np.array(episode_states)),
+																 actions: np.vstack(np.array(episode_actions)),
+																 discounted_episode_rewards_: discounted_episode_rewards
+																})
+
+				# Write TF Summaries
+				summary = sess.run(write_op, feed_dict={input_: np.vstack(np.array(episode_states)),
+																 actions: np.vstack(np.array(episode_actions)),
+																 discounted_episode_rewards_: discounted_episode_rewards,
+																	mean_reward_: mean_reward,
+																	episode_rewards_sum_: episode_rewards_sum
+																})
+
+				if episode + 1 in [2**i for i in range(min_episodes_exp, max_episodes_exp + 1)]:
+					# Save Model
+					saver.save(sess, ckpt_paths[int(math.log(episode + 1, 2)) - min_episodes_exp])
+					print("==========================================")
+					print("Model saved")
+
+				writer.add_summary(summary, episode)
+				writer.flush()
+			'''
+
+			return action
+
+#
+# def test():
+# 	with tf.device('/device:GPU:0'):
+#
+# 		env.seed(4937)
+# 		np.random.seed(71)
+#
+# 		with tf.Session() as sess:
+# 			# Load the model
+# 			saver.restore(sess, ckpt_path)
+#
+# 			rewards = []
+# 			for episode in range(max_episodes_evaluate):
+# 				state = env.reset()
+# 				done = False
+# 				total_rewards = 0
+# 				print("****************************************************")
+# 				print("EPISODE", episode)
+#
+# 				step = 0
+# 				while True:
+# 					step += 1
+# 					# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
+# 					action_probability_distribution = sess.run(action_distribution, feed_dict={input_: state.reshape([1, state_size])})
+# 					#print(action_probability_distribution)
+# 					action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
+#
+# 					new_state, reward, done, info = env.step(action)
+#
+# 					total_rewards += reward
+#
+# 					if done or (step == max_steps):
+# 						rewards.append(total_rewards)
+# 						print("Score:", total_rewards)
+# 						break
+# 					state = new_state
+#
+# 			env.close()
+# 			print("****************************************************")
+# 			print("Score over time:", str(sum(rewards) / max_episodes_evaluate))
+# 			print("****************************************************")
+#
+# def watch():
+# 	with tf.Session() as sess:
+# 		# Load the model
+# 		saver.restore(sess, ckpt_path)
+#
+# 		while True:
+# 			state = env.reset()
+# 			done = False
+# 			total_rewards = 0
+#
+# 			step = 0
+# 			while True:
+# 				step += 1
+# 				env.render()
+# 				# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
+# 				action_probability_distribution = sess.run(action_distribution, feed_dict={input_: state.reshape([1, state_size])})
+# 				#print(action_probability_distribution)
+# 				action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
+#
+# 				new_state, reward, done, info = env.step(action)
+#
+# 				total_rewards += reward
+#
+# 				if done or (step == max_steps):
+# 					print("Score:", total_rewards)
+# 					break
+#
+# 				state = new_state
+#
+# # Setup TensorBoard Writer
+# ckpt_folder = "results/lr_" + str(learning_rate) + "/g_" + str(gamma) + "/"
+# ckpt_filename = "s_" + str(max_steps) + "-lr_" + str(learning_rate) + "-g_" + str(gamma)
+# ckpt_paths = []
+# for i in range(min_episodes_exp, max_episodes_exp + 1):
+# 	ckpt_paths.append("./" + ckpt_folder + ckpt_filename + "_" + str(2**i) + ".ckpt")
+#
+# saver = tf.train.Saver()
+#
+# if test_or_train == 'train':
+# 	if not os.path.exists(ckpt_folder):
+# 		os.makedirs(ckpt_folder)
+# 	train()
+#
+# else:
+# 	test_episodes = int(sys.argv[4]) - min_episodes_exp
+#
+# 	if not os.path.isfile(ckpt_paths[test_episodes] + ".index"):
+# 		print("Checkpoint not found!")
+# 		exit()
+#
+# 	ckpt_path = ckpt_paths[test_episodes]
+# 	test()
+# 	watch()
