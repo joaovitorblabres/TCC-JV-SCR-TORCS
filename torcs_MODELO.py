@@ -14,7 +14,7 @@ gamma_index = 2
 
 ## ENVIRONMENT Hyperparameters
 state_size = 79
-action_size = 29
+action_size = 4
 
 ## TRAINING Hyperparameters
 min_episodes_exp = 9
@@ -104,7 +104,6 @@ def lng_trans_prime(obs):
 	Reward longitudal velocity projected on track axis,
 	with a penality for transverse velocity.
 	"""
-	print(obs)
 	speedX = np.array([float(i) for i in obs['speedX']])
 	# Track distance
 	trackPos = np.array([float(i) for i in obs['trackPos']])
@@ -119,7 +118,9 @@ episode = 0
 episode_states, episode_actions, episode_rewards = [],[],[]
 
 writer = tf.summary.FileWriter("./results/log/lr_" + str(learning_rate) + "/g_" + str(gamma) + "/")
+step = 0
 def train(msg):
+	global step
 	with tf.device('/device:CPU:0'):
 		np.random.seed(4937)
 		## Losses
@@ -146,8 +147,7 @@ def train(msg):
 			#(trackPos -0.333363)(wheelSpinVel 0 0 0 0)(z 0.345256)(focus -1 -1 -1 -1 -1)
 
 			# env.render()
-			step = 0
-			#step += 1
+			step += 1
 			n = []
 			for key, val in msg.items():
 				for i in val:
@@ -157,9 +157,9 @@ def train(msg):
 			action_probability_distribution = sess.run(action_distribution, feed_dict={input_: new.reshape([1, state_size])})
 
 			action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
-
 			# Perform a
 			reward = lng_trans_prime(msg)
+			print(reward)
 
 			# Store s
 			episode_states.append(state)
@@ -173,56 +173,56 @@ def train(msg):
 
 			# Store r
 			episode_rewards.append(reward)
-			'''
-			if (step == max_steps):
-				# Calculate sum reward
-				episode_rewards_sum = np.sum(episode_rewards)
-
-				allRewards.append(episode_rewards_sum)
-
-				total_rewards = np.sum(allRewards)
-
-				# Mean reward
-				mean_reward = np.divide(total_rewards, episode+1)
-
-				maximumRewardRecorded = np.amax(allRewards)
-
-				print("==========================================")
-				print("Episode:", episode)
-				print("Reward:", episode_rewards_sum)
-				print("Steps for this Episode:", step)
-				print("Mean Reward:", mean_reward)
-				print("Max reward so far:", maximumRewardRecorded)
-
-				# Calculate discounted reward
-				discounted_episode_rewards = discount_and_normalize_rewards(episode_rewards)
-
-				# Feedforward, gradient and backpropagation
-				loss_, _ = sess.run([loss, train_opt], feed_dict={input_: np.vstack(np.array(episode_states)),
-																 actions: np.vstack(np.array(episode_actions)),
-																 discounted_episode_rewards_: discounted_episode_rewards
-																})
-
-				# Write TF Summaries
-				summary = sess.run(write_op, feed_dict={input_: np.vstack(np.array(episode_states)),
-																 actions: np.vstack(np.array(episode_actions)),
-																 discounted_episode_rewards_: discounted_episode_rewards,
-																	mean_reward_: mean_reward,
-																	episode_rewards_sum_: episode_rewards_sum
-																})
-
-				if episode + 1 in [2**i for i in range(min_episodes_exp, max_episodes_exp + 1)]:
-					# Save Model
-					saver.save(sess, ckpt_paths[int(math.log(episode + 1, 2)) - min_episodes_exp])
-					print("==========================================")
-					print("Model saved")
-
-				writer.add_summary(summary, episode)
-				writer.flush()
-			'''
 
 			return action
 
+def endTrain():
+	global step
+	with tf.Session(config = config) as sess:
+		# Calculate sum reward
+		episode_rewards_sum = np.sum(episode_rewards)
+
+		allRewards.append(episode_rewards_sum)
+
+		total_rewards = np.sum(allRewards)
+
+		# Mean reward
+		mean_reward = np.divide(total_rewards, episode+1)
+
+		maximumRewardRecorded = np.amax(allRewards)
+
+		print("==========================================")
+		print("Episode:", episode)
+		print("Reward:", episode_rewards_sum)
+		print("Steps for this Episode:", step)
+		print("Mean Reward:", mean_reward)
+		print("Max reward so far:", maximumRewardRecorded)
+
+		# Calculate discounted reward
+		discounted_episode_rewards = discount_and_normalize_rewards(episode_rewards)
+
+		# Feedforward, gradient and backpropagation
+		loss_, _ = sess.run([loss, train_opt], feed_dict={input_: np.vstack(np.array(episode_states)),
+														 actions: np.vstack(np.array(episode_actions)),
+														 discounted_episode_rewards_: discounted_episode_rewards
+														})
+
+		# Write TF Summaries
+		summary = sess.run(write_op, feed_dict={input_: np.vstack(np.array(episode_states)),
+														 actions: np.vstack(np.array(episode_actions)),
+														 discounted_episode_rewards_: discounted_episode_rewards,
+															mean_reward_: mean_reward,
+															episode_rewards_sum_: episode_rewards_sum
+														})
+		step = 0
+		# if episode + 1 in [2**i for i in range(min_episodes_exp, max_episodes_exp + 1)]:
+		# 	# Save Model
+		# 	saver.save(sess, ckpt_paths[int(math.log(episode + 1, 2)) - min_episodes_exp])
+		# 	print("==========================================")
+		# 	print("Model saved")
+		#
+		# writer.add_summary(summary, episode)
+		# writer.flush()
 #
 # def test():
 # 	with tf.device('/device:GPU:0'):

@@ -50,22 +50,18 @@ class Driver(object):
         new_msg = self.state.setFromMsg(msg)
 
         ## ADICIONAR O TREINAMENTO AQUI
-        print(new_msg)
         action = tm.train(new_msg)
         #action = tm.train(np.array(n))
-        print(action)
-        # self.steer()
+        self.steer(action%4, action%4)
         #
-        # self.gear()
+        self.gear()
         #
-        # self.speed()
+        self.speed(action%4, action%4)
 
         return self.control.toMsg()
 
-    def steer(self):
-        angle = float(self.state.angle)
-        dist = float(self.state.trackPos)
-        self.control.setSteer((angle - dist*0.8)/self.steer_lock)
+    def steer(self, steeringLeft, steeringRight):
+        self.control.setSteer(max(steeringLeft, steeringRight))
 
     def gear(self):
         rpm = self.state.getRpm()
@@ -87,23 +83,12 @@ class Driver(object):
 
         self.control.setGear(gear)
 
-    def speed(self):
-        speed = self.state.getSpeedX()
-        accel = self.control.getAccel()
-
-        if speed < self.max_speed:
-            accel += 0.1
-            if accel > 1:
-                accel = 1.0
-        else:
-            accel -= 0.1
-            if accel < 0:
-                accel = 0.0
-
-        self.control.setAccel(accel)
+    def speed(self, accel, brake):
+        self.control.setAccel(max(accel, brake))
 
 
     def onShutDown(self):
+        tm.endTrain()
         pass
 
     def onRestart(self):
