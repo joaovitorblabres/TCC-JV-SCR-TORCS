@@ -13,7 +13,7 @@ gamma_index = 2
 # test_or_train = sys.argv[3]
 
 ## ENVIRONMENT Hyperparameters
-state_size = 79
+state_size = 30
 action_size = 4
 
 ## TRAINING Hyperparameters
@@ -74,7 +74,7 @@ with tf.name_scope("inputs"):
 
 	with tf.name_scope("fc2"):
 		fc2 = tf.contrib.layers.fully_connected(inputs = fc1,
-												num_outputs = action_size,
+												num_outputs = action_size//2,
 												activation_fn = tf.nn.relu,
 												weights_initializer = tf.contrib.layers.xavier_initializer(seed=1337))
 
@@ -140,11 +140,10 @@ def train(msg):
 
 			# Launch the game
 			state = msg
-			#(angle 0.00894148)(curLapTime -0.982)(damage 0)(distFromStart 5759.1)(distRaced 0)(fuel 94)(gear 0)(lastLapTime 0)
-			#(opponents 200 10.6503 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200)
+			#(angle 0.00894148)(curLapTime -0.982)(damage 0)(distFromStart 5759.1)(distRaced 0)(gear 0)(lastLapTime 0)
 			#(racePos 1)(rpm 942.478)(speedX 0.000308602)(speedY 0.00128389)(speedZ -0.000193009)
 			#(track 7.33374 7.60922 8.50537 10.4385 14.7757 21.468 27.865 39.8075 70.6072 200 49.8655 21.1133 13.9621 10.5624 7.24717 5.14528 4.2136 3.78723 3.66663)
-			#(trackPos -0.333363)(wheelSpinVel 0 0 0 0)(z 0.345256)(focus -1 -1 -1 -1 -1)
+			#(trackPos -0.333363)(z 0.345256)
 
 			# env.render()
 			step += 1
@@ -154,12 +153,13 @@ def train(msg):
 					n.append(i)
 			new = np.array(n)
 			# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
+			print(new, len(new))
 			action_probability_distribution = sess.run(action_distribution, feed_dict={input_: new.reshape([1, state_size])})
 
 			action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
+			print(action_probability_distribution)
 			# Perform a
 			reward = lng_trans_prime(msg)
-			print(reward)
 
 			# Store s
 			episode_states.append(state)

@@ -9,6 +9,7 @@ import carState
 import carControl
 import torcs_MODELO as tm
 import numpy as np
+import datetime
 
 class Driver(object):
     '''
@@ -48,15 +49,18 @@ class Driver(object):
 
     def drive(self, msg):
         new_msg = self.state.setFromMsg(msg)
-
+        #print(new_msg)
         ## ADICIONAR O TREINAMENTO AQUI
+        t1 = datetime.datetime.now()
         action = tm.train(new_msg)
+        t2 = datetime.datetime.now()
         #action = tm.train(np.array(n))
         self.steer(action%4, action%4)
         #
         self.gear()
         #
         self.speed(action%4, action%4)
+        print(t2-t1)
 
         return self.control.toMsg()
 
@@ -88,7 +92,7 @@ class Driver(object):
 
 
     def onShutDown(self):
-        tm.endTrain()
+        #tm.endTrain()
         pass
 
     def onRestart(self):

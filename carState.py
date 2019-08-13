@@ -17,14 +17,14 @@ class CarState(object):
         self.sensors = None
         self.angle = None
         self.curLapTime = None
-        self.damage = None
+        #self.damage = None
         self.distFromStart = None
         self.distRaced = None
-        self.focus = None
-        self.fuel = None
+        # self.focus = None
+        # self.fuel = None
         self.gear = None
         self.lastLapTime = None
-        self.opponents = None
+        #self.opponents = None
         self.racePos = None
         self.rpm = None
         self.speedX = None
@@ -32,55 +32,56 @@ class CarState(object):
         self.speedZ = None
         self.track = None
         self.trackPos = None
-        self.wheelSpinVel = None
-        self.z = None
+        # self.wheelSpinVel = None
+        #self.z = None
 
     def setFromMsg(self, str_sensors):
         self.sensors = self.parser.parse(str_sensors)
 
         self.setAngleD()
         self.setCurLapTimeD()
-        self.setDamageD()
+        #self.setDamageD()
         self.setDistFromStartD()
         self.setDistRacedD()
-        self.setFocusD()
-        self.setFuelD()
+        # self.setFocusD()
+        # self.setFuelD()
         self.setGearD()
         self.setLastLapTimeD()
-        self.setOpponentsD()
-        self.setRacePosD()
+        #self.setOpponentsD()
+        # self.setRacePosD()
         self.setRpmD()
         self.setSpeedXD()
         self.setSpeedYD()
         self.setSpeedZD()
         self.setTrackD()
         self.setTrackPosD()
-        self.setWheelSpinVelD()
-        self.setZD()
-        return self.sensors
+        # self.setWheelSpinVelD()
+        # self.setZD()
+
+        return self.parser.parse(self.toMsg())
 
     def toMsg(self):
         self.sensors = {}
 
         self.sensors['angle'] = [self.angle]
         self.sensors['curLapTime'] = [self.curLapTime]
-        self.sensors['damage'] = [self.damage]
+        #self.sensors['damage'] = [self.damage]
         self.sensors['distFromStart'] = [self.distFromStart]
         self.sensors['distRaced'] = [self.distRaced]
-        self.sensors['focus'] = self.focus
-        self.sensors['fuel'] = [self.fuel]
+        # self.sensors['focus'] = self.focus
+        # self.sensors['fuel'] = [self.fuel]
         self.sensors['gear'] = [self.gear]
         self.sensors['lastLapTime'] = [self.lastLapTime]
-        self.sensors['opponents'] = self.opponents
-        self.sensors['racePos'] = [self.racePos]
+        #self.sensors['opponents'] = self.opponents
+        # self.sensors['racePos'] = [self.racePos]
         self.sensors['rpm'] = [self.rpm]
         self.sensors['speedX'] = [self.speedX]
         self.sensors['speedY'] = [self.speedY]
         self.sensors['speedZ'] = [self.speedZ]
         self.sensors['track'] = self.track
         self.sensors['trackPos'] = [self.trackPos]
-        self.sensors['wheelSpinVel'] = self.wheelSpinVel
-        self.sensors['z'] = [self.z]
+        # self.sensors['wheelSpinVel'] = self.wheelSpinVel
+        # self.sensors['z'] = [self.z]
 
         return self.parser.stringify(self.sensors)
 
@@ -138,14 +139,14 @@ class CarState(object):
     def getCurLapTime(self):
         return self.curLapTime
 
-    def setDamage(self, damage):
-        self.damage = damage
-
-    def setDamageD(self):
-        self.damage = self.getFloatD('damage')
-
-    def getDamage(self):
-        return self.damage
+    # def setDamage(self, damage):
+    #     self.damage = damage
+    #
+    # def setDamageD(self):
+    #     self.damage = self.getFloatD('damage')
+    #
+    # def getDamage(self):
+    #     return self.damage
 
     def setDistFromStart(self, distFromStart):
         self.distFromStart = distFromStart
@@ -164,21 +165,21 @@ class CarState(object):
 
     def getDistRaced(self):
         return self.distRaced
-
-    def setFocus(self, focus):
-        self.focus = focus
-
-    def setFocusD(self):
-        self.focus = self.getFloatListD('focus')
-
-    def setFuel(self, fuel):
-        self.fuel = fuel
-
-    def setFuelD(self):
-        self.fuel = self.getFloatD('fuel')
-
-    def getFuel(self):
-        return self.fuel
+    #
+    # def setFocus(self, focus):
+    #     self.focus = focus
+    #
+    # def setFocusD(self):
+    #     self.focus = self.getFloatListD('focus')
+    #
+    # def setFuel(self, fuel):
+    #     self.fuel = fuel
+    #
+    # def setFuelD(self):
+    #     self.fuel = self.getFloatD('fuel')
+    #
+    # def getFuel(self):
+        # return self.fuel
 
     def setGear(self, gear):
         self.gear = gear
@@ -195,23 +196,23 @@ class CarState(object):
     def setLastLapTimeD(self):
         self.lastLapTime = self.getFloatD('lastLapTime')
 
-    def setOpponents(self, opponents):
-        self.opponents = opponents
-
-    def setOpponentsD(self):
-        self.opponents = self.getFloatListD('opponents')
-
-    def getOpponents(self):
-        return self.opponents
-
-    def setRacePos(self, racePos):
-        self.racePos = racePos
-
-    def setRacePosD(self):
-        self.racePos = self.getIntD('racePos')
-
-    def getRacePos(self):
-        return self.racePos
+    # def setOpponents(self, opponents):
+    #     self.opponents = opponents
+    #
+    # def setOpponentsD(self):
+    #     self.opponents = self.getFloatListD('opponents')
+    #
+    # def getOpponents(self):
+    #     return self.opponents
+    #
+    # def setRacePos(self, racePos):
+    #     self.racePos = racePos
+    #
+    # def setRacePosD(self):
+    #     self.racePos = self.getIntD('racePos')
+    #
+    # def getRacePos(self):
+    #     return self.racePos
 
     def setRpm(self, rpm):
         self.rpm = rpm
@@ -267,20 +268,20 @@ class CarState(object):
     def getTrackPos(self):
         return self.trackPos
 
-    def setWheelSpinVel(self, wheelSpinVel):
-        self.wheelSpinVel = wheelSpinVel
-
-    def setWheelSpinVelD(self):
-        self.wheelSpinVel = self.getFloatListD('wheelSpinVel')
-
-    def getWheelSpinVel(self):
-        return self.wheelSpinVel
-
-    def setZ(self, z):
-        self.z = z
-
-    def setZD(self):
-        self.z = self.getFloatD('z')
-
-    def getZ(self):
-        return self.z
+    # def setWheelSpinVel(self, wheelSpinVel):
+    #     self.wheelSpinVel = wheelSpinVel
+    #
+    # def setWheelSpinVelD(self):
+    #     self.wheelSpinVel = self.getFloatListD('wheelSpinVel')
+    #
+    # def getWheelSpinVel(self):
+    #     return self.wheelSpinVel
+    #
+    # def setZ(self, z):
+    #     self.z = z
+    #
+    # def setZD(self):
+    #     self.z = self.getFloatD('z')
+    #
+    # def getZ(self):
+    #     return self.z
