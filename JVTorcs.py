@@ -1,3 +1,4 @@
+import tensorflow as tf
 import sys
 import argparse
 import socket
@@ -48,88 +49,16 @@ shutdownClient = False
 curEpisode = 0
 
 verbose = False
-
+config = tf.ConfigProto(allow_soft_placement = True)
 d = driver.Driver(arguments.stage)
+with tf.Session(config = config) as sess:
+    sess.run(tf.global_variables_initializer())
+    while not shutdownClient:
+        while True:
+            print('Sending id to server: ', arguments.id)
+            buf = arguments.id + d.init()
+            print('Sending init string to server:', buf)
 
-while not shutdownClient:
-    while True:
-        print('Sending id to server: ', arguments.id)
-        buf = arguments.id + d.init()
-        print('Sending init string to server:', buf)
-
-        try:
-            b = buf.encode()
-            sock.sendto(b, (arguments.host_ip, arguments.host_port))
-        except socket.error as msg:
-            print("Failed to send data...Exiting...")
-            sys.exit(-1)
-
-        try:
-            buf, addr = sock.recvfrom(1000)
-        except socket.error as msg:
-            print("didn't get response from server...")
-
-        try:
-            buf.encode()
-            if buf.find('***identified***') >= 0:
-                print('Received: ', buf)
-                break
-        except:
-            if buf.find(b'***identified***') >= 0:
-                print('Received: ', buf)
-                break
-
-
-    currentStep = 0
-
-    while True:
-        # wait for an answer from server
-        buf = None
-        try:
-            buf, addr = sock.recvfrom(1000)
-        except socket.error as msg:
-            print("didn't get response from server...")
-
-        if verbose:
-            print('Received: ', buf)
-
-        try:
-            buf.encode()
-            if buf != None and buf.find('***shutdown***') >= 0:
-                d.onShutDown()
-                shutdownClient = True
-                print('Client Shutdown')
-                break
-        except:
-            if buf != None and buf.find(b'***shutdown***') >= 0:
-                d.onShutDown()
-                shutdownClient = True
-                print('Client Shutdown')
-                break
-
-        try:
-            buf.encode()
-            if buf != None and buf.find('***restart***') >= 0:
-                d.onRestart()
-                print('Client Restart')
-                break
-        except:
-            if buf != None and buf.find(b'***restart***') >= 0:
-                d.onRestart()
-                print('Client Restart')
-                break
-
-        currentStep += 1
-        if currentStep != arguments.max_steps:
-            if buf != None:
-                buf = d.drive(buf.decode())
-        else:
-            buf = '(meta 1)'
-
-        if verbose:
-            print('Sending: ', buf)
-
-        if buf != None:
             try:
                 b = buf.encode()
                 sock.sendto(b, (arguments.host_ip, arguments.host_port))
@@ -137,10 +66,83 @@ while not shutdownClient:
                 print("Failed to send data...Exiting...")
                 sys.exit(-1)
 
-    curEpisode += 1
+            try:
+                buf, addr = sock.recvfrom(1000)
+            except socket.error as msg:
+                print("didn't get response from server...")
 
-    if curEpisode == arguments.max_episodes:
-        shutdownClient = True
+            try:
+                buf.encode()
+                if buf.find('***identified***') >= 0:
+                    print('Received: ', buf)
+                    break
+            except:
+                if buf.find(b'***identified***') >= 0:
+                    print('Received: ', buf)
+                    break
+
+
+        currentStep = 0
+
+        while True:
+            # wait for an answer from server
+            buf = None
+            try:
+                buf, addr = sock.recvfrom(1000)
+            except socket.error as msg:
+                print("didn't get response from server...")
+
+            if verbose:
+                print('Received: ', buf)
+
+            try:
+                buf.encode()
+                if buf != None and buf.find('***shutdown***') >= 0:
+                    d.onShutDown()
+                    shutdownClient = True
+                    print('Client Shutdown')
+                    break
+            except:
+                if buf != None and buf.find(b'***shutdown***') >= 0:
+                    d.onShutDown()
+                    shutdownClient = True
+                    print('Client Shutdown')
+                    break
+
+            try:
+                buf.encode()
+                if buf != None and buf.find('***restart***') >= 0:
+                    d.onRestart()
+                    print('Client Restart')
+                    break
+            except:
+                if buf != None and buf.find(b'***restart***') >= 0:
+                    d.onRestart()
+                    print('Client Restart')
+                    break
+
+            currentStep += 1
+            if currentStep != arguments.max_steps:
+                if buf != None:
+                    buf = d.drive(buf.decode(), sess)
+            else:
+                buf = '(meta 1)'
+
+            if verbose:
+                print('Sending: ', buf)
+
+            if buf != None:
+                try:
+                    b = buf.encode()
+                    sock.sendto(b, (arguments.host_ip, arguments.host_port))
+                except socket.error as msg:
+                    print("Failed to send data...Exiting...")
+                    sys.exit(-1)
+
+        curEpisode += 1
+
+        if curEpisode == arguments.max_episodes:
+            shutdownClient = True
 
 
 sock.close()

@@ -4,6 +4,7 @@ import sys
 import os
 import time
 import math
+import datetime
 
 learning_rate_index = 2
 gamma_index = 2
@@ -68,13 +69,13 @@ with tf.name_scope("inputs"):
 
 	with tf.name_scope("fc1"):
 		fc1 = tf.contrib.layers.fully_connected(inputs = input_,
-												num_outputs = 32,
+												num_outputs = 600,
 												activation_fn = tf.nn.relu,
 												weights_initializer = tf.contrib.layers.xavier_initializer(seed=4937))
 
 	with tf.name_scope("fc2"):
 		fc2 = tf.contrib.layers.fully_connected(inputs = fc1,
-												num_outputs = action_size//2,
+												num_outputs = 300,
 												activation_fn = tf.nn.relu,
 												weights_initializer = tf.contrib.layers.xavier_initializer(seed=1337))
 
@@ -97,8 +98,6 @@ with tf.name_scope("inputs"):
 	with tf.name_scope("train"):
 		train_opt = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
-config = tf.ConfigProto(allow_soft_placement = True)
-
 def lng_trans_prime(obs):
 	"""
 	Reward longitudal velocity projected on track axis,
@@ -119,9 +118,9 @@ episode_states, episode_actions, episode_rewards = [],[],[]
 
 writer = tf.summary.FileWriter("./results/log/lr_" + str(learning_rate) + "/g_" + str(gamma) + "/")
 step = 0
-def train(msg):
+def train(msg, sess):
 	global step
-	with tf.device('/device:CPU:0'):
+	with tf.device('/device:GPU:0'):
 		np.random.seed(4937)
 		## Losses
 		tf.summary.scalar("Loss", loss)
@@ -131,50 +130,47 @@ def train(msg):
 		tf.summary.scalar("Reward", episode_rewards_sum_)
 		write_op = tf.summary.merge_all()
 
+		episode_rewards_sum = 0
 
-		with tf.Session(config = config) as sess:
-			sess.run(tf.global_variables_initializer())
+		# Launch the game
+		state = msg
+		#(angle 0.00894148)(curLapTime -0.982)(damage 0)(distFromStart 5759.1)(distRaced 0)(gear 0)(lastLapTime 0)
+		#(racePos 1)(rpm 942.478)(speedX 0.000308602)(speedY 0.00128389)(speedZ -0.000193009)
+		#(track 7.33374 7.60922 8.50537 10.4385 14.7757 21.468 27.865 39.8075 70.6072 200 49.8655 21.1133 13.9621 10.5624 7.24717 5.14528 4.2136 3.78723 3.66663)
+		#(trackPos -0.333363)(z 0.345256)
 
+		# env.render()
+		step += 1
+		n = []
+		for key, val in msg.items():
+			for i in val:
+				n.append(i)
+		new = np.array(n)
+		# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
+		action_probability_distribution = sess.run(action_distribution, feed_dict={input_: new.reshape([1, state_size])})
+		t1 = datetime.datetime.now()
+		#print(action_probability_distribution.ravel())
 
-			episode_rewards_sum = 0
+		action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
+#		print(action_probability_distribution)
+		t2 = datetime.datetime.now()
+		print(t2-t1)
+		# Perform a
+		reward = lng_trans_prime(msg)
 
-			# Launch the game
-			state = msg
-			#(angle 0.00894148)(curLapTime -0.982)(damage 0)(distFromStart 5759.1)(distRaced 0)(gear 0)(lastLapTime 0)
-			#(racePos 1)(rpm 942.478)(speedX 0.000308602)(speedY 0.00128389)(speedZ -0.000193009)
-			#(track 7.33374 7.60922 8.50537 10.4385 14.7757 21.468 27.865 39.8075 70.6072 200 49.8655 21.1133 13.9621 10.5624 7.24717 5.14528 4.2136 3.78723 3.66663)
-			#(trackPos -0.333363)(z 0.345256)
+		# Store s
+		episode_states.append(state)
 
-			# env.render()
-			step += 1
-			n = []
-			for key, val in msg.items():
-				for i in val:
-					n.append(i)
-			new = np.array(n)
-			# Choose action a, remember WE'RE NOT IN A DETERMINISTIC ENVIRONMENT, WE'RE OUTPUT PROBABILITIES.
-			print(new, len(new))
-			action_probability_distribution = sess.run(action_distribution, feed_dict={input_: new.reshape([1, state_size])})
+		# One-Hot Encoding
+		action_ = np.zeros(action_size)
+		action_[action] = 1
 
-			action = np.random.choice(range(action_probability_distribution.shape[1]), p=action_probability_distribution.ravel())  # select action w.r.t the actions prob
-			print(action_probability_distribution)
-			# Perform a
-			reward = lng_trans_prime(msg)
+		# Store a
+		episode_actions.append(action_)
 
-			# Store s
-			episode_states.append(state)
-
-			# One-Hot Encoding
-			action_ = np.zeros(action_size)
-			action_[action] = 1
-
-			# Store a
-			episode_actions.append(action_)
-
-			# Store r
-			episode_rewards.append(reward)
-
-			return action
+		# Store r
+		episode_rewards.append(reward)
+		return action
 
 def endTrain():
 	global step

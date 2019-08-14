@@ -32,6 +32,7 @@ class Driver(object):
         self.steer_lock = 0.785398
         self.max_speed = 350
         self.prev_rpm = None
+        self.Q = torcs_MODELO.init_q(torcs_MODELO.state_size, torcs_MODELO.action_size)
 
     def init(self):
         '''Return init string with rangefinder angles'''
@@ -47,20 +48,19 @@ class Driver(object):
 
         return self.parser.stringify({'init': self.angles})
 
-    def drive(self, msg):
+    def drive(self, msg, sess):
         new_msg = self.state.setFromMsg(msg)
         #print(new_msg)
         ## ADICIONAR O TREINAMENTO AQUI
-        t1 = datetime.datetime.now()
-        action = tm.train(new_msg)
-        t2 = datetime.datetime.now()
+        #action = tm.train(new_msg, sess)
+        q = torcs_MODELO.qlearning(self.Q, new_msg)
+
         #action = tm.train(np.array(n))
         self.steer(action%4, action%4)
         #
         self.gear()
         #
         self.speed(action%4, action%4)
-        print(t2-t1)
 
         return self.control.toMsg()
 
