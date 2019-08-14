@@ -32,7 +32,7 @@ class Driver(object):
         self.steer_lock = 0.785398
         self.max_speed = 350
         self.prev_rpm = None
-        self.Q = torcs_MODELO.init_q(torcs_MODELO.state_size, torcs_MODELO.action_size)
+        self.rpmList = [0, 100,3000,4000,4800,5200,5600]
 
     def init(self):
         '''Return init string with rangefinder angles'''
@@ -48,13 +48,16 @@ class Driver(object):
 
         return self.parser.stringify({'init': self.angles})
 
-    def drive(self, msg, sess):
+    def drive(self, msg, RL):
         new_msg = self.state.setFromMsg(msg)
         #print(new_msg)
         ## ADICIONAR O TREINAMENTO AQUI
-        #action = tm.train(new_msg, sess)
-        q = torcs_MODELO.qlearning(self.Q, new_msg)
-
+        n = []
+        for key, val in new_msg.items():
+        	for i in val:
+        		n.append(i)
+        new = np.array(n)
+        action = RL.choose_action(new)
         #action = tm.train(np.array(n))
         self.steer(action%4, action%4)
         #
@@ -62,7 +65,10 @@ class Driver(object):
         #
         self.speed(action%4, action%4)
 
-        return self.control.toMsg()
+        return (self.control.toMsg(), action, new, new_msg)
+
+    def atualiza(self, RL, state, action, reward, state_):
+        RL.store_transition(state, action, reward, state_)
 
     def steer(self, steeringLeft, steeringRight):
         self.control.setSteer(max(steeringLeft, steeringRight))
@@ -82,7 +88,7 @@ class Driver(object):
         if up and rpm > 8000:
             gear += 1
 
-        if not up and rpm < 6000:
+        if rpm < self.rpmList[gear]:
             gear -= 1
 
         self.control.setGear(gear)
