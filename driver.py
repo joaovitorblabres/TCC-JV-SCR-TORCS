@@ -59,11 +59,17 @@ class Driver(object):
         new = np.array(n)
         action = RL.choose_action(new)
         #action = tm.train(np.array(n))
-        self.steer(action%4, action%4)
+        if action == 0:
+            self.steer(1, 0)
+        elif action == 1:
+            self.steer(0, 1)
         #
         self.gear()
         #
-        self.speed(action%4, action%4)
+        if action == 2:
+            self.speed(1, 0)
+        elif action == 3:
+            self.speed(0, 1)
 
         return (self.control.toMsg(), action, new, new_msg)
 

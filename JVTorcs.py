@@ -144,7 +144,7 @@ while not shutdownClient:
 
         if verbose:
             print('Sending: ', buf)
-        print(currentStep)
+        #print(currentStep)
         if buf != None and oldStep != []:
             try:
                 b = buf.encode()
@@ -156,7 +156,7 @@ while not shutdownClient:
             reward = rw.lng_trans_prime(bufState)
             d.atualiza(RL, state, action, reward, oldStep)
             if (currentStep > 200):
-                if (currentStep % 10 == 0):
+                if (currentStep % 5 == 0):
                     RL.learn()
 
     curEpisode += 1
