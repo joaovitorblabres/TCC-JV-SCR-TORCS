@@ -3,6 +3,7 @@ import argparse
 import socket
 import driver
 import rewards as rw
+import tensorflow as tf
 import DQLearning as DQL
 
 if __name__ == '__main__':
@@ -62,107 +63,125 @@ if __name__ == "__main__":
                       memory_size=2000,
                       # output_graph=True
                   )
+maximumRewardRecorded = -5000000
+maximumDistanceTraveled = -5000
+with tf.device('/device:GPU:0'):
+    while not shutdownClient:
+        while True:
+            #print('Sending id to server: ', arguments.id)
+            buf = arguments.id + d.init()
+            #print('Sending init string to server:', buf)
 
-while not shutdownClient:
-    while True:
-        print('Sending id to server: ', arguments.id)
-        buf = arguments.id + d.init()
-        print('Sending init string to server:', buf)
-
-        try:
-            b = buf.encode()
-            sock.sendto(b, (arguments.host_ip, arguments.host_port))
-        except socket.error as msg:
-            print("Failed to send data...Exiting...")
-            sys.exit(-1)
-
-        try:
-            buf, addr = sock.recvfrom(1000)
-        except socket.error as msg:
-            print("didn't get response from server...")
-
-        try:
-            buf.encode()
-            if buf.find('***identified***') >= 0:
-                print('Received: ', buf)
-                break
-        except:
-            if buf.find(b'***identified***') >= 0:
-                print('Received: ', buf)
-                break
-
-
-    currentStep = 0
-    oldStep = []
-    state = []
-    while True:
-        # wait for an answer from server
-        buf = None
-        oldStep = state
-        try:
-            buf, addr = sock.recvfrom(1000)
-        except socket.error as msg:
-            print("didn't get response from server...")
-
-        if verbose:
-            print('Received: ', buf)
-
-        try:
-            buf.encode()
-            if buf != None and buf.find('***shutdown***') >= 0:
-                d.onShutDown()
-                shutdownClient = True
-                print('Client Shutdown')
-                break
-        except:
-            if buf != None and buf.find(b'***shutdown***') >= 0:
-                d.onShutDown()
-                shutdownClient = True
-                print('Client Shutdown')
-                break
-
-        try:
-            buf.encode()
-            if buf != None and buf.find('***restart***') >= 0:
-                d.onRestart()
-                print('Client Restart')
-                break
-        except:
-            if buf != None and buf.find(b'***restart***') >= 0:
-                d.onRestart()
-                print('Client Restart')
-                break
-
-        currentStep += 1
-        bufState = None
-        action = None
-        if currentStep != arguments.max_steps:
-            if buf != None:
-                buf, action, state, bufState = d.drive(buf.decode(), RL)
-        else:
-            buf = '(meta 1)'
-
-        if verbose:
-            print('Sending: ', buf)
-        #print(currentStep)
-        if buf != None and oldStep != []:
             try:
                 b = buf.encode()
                 sock.sendto(b, (arguments.host_ip, arguments.host_port))
             except socket.error as msg:
-                print("Failed to send data...Exiting...")
+                #print("Failed to send data...Exiting...")
                 sys.exit(-1)
-            #print(bufState.decode())
-            reward = rw.lng_trans_prime(bufState)
-            d.atualiza(RL, state, action, reward, oldStep)
-            if (currentStep > 200):
-                if (currentStep % 5 == 0):
+
+            try:
+                buf, addr = sock.recvfrom(1000)
+            except socket.error as msg:
+                #print("didn't get response from server...")
+                pass
+
+            try:
+                buf.encode()
+                if buf.find('***identified***') >= 0:
+                    print('Received: ', buf)
+                    break
+            except:
+                if buf.find(b'***identified***') >= 0:
+                    print('Received: ', buf)
+                    break
+
+
+        currentStep = 0
+        episode_rewards_sum = 0
+        oldStep = []
+        state = []
+        while True:
+            # wait for an answer from server
+            buf = None
+            oldStep = state
+            try:
+                buf, addr = sock.recvfrom(1000)
+            except socket.error as msg:
+                pass
+                #print("didn't get response from server...")
+
+            if verbose:
+                pass
+                #print('Received: ', buf)
+
+            try:
+                buf.encode()
+                if buf != None and buf.find('***shutdown***') >= 0:
+                    d.onShutDown()
+                    #shutdownClient = True
+                    print('Client Shutdown')
+                    break
+            except:
+                if buf != None and buf.find(b'***shutdown***') >= 0:
+                    d.onShutDown()
+                    #shutdownClient = True
+                    print('Client Shutdown')
+                    break
+
+            try:
+                buf.encode()
+                if buf != None and buf.find('***restart***') >= 0:
+                    d.onRestart()
+                    print('Client Restart')
+                    break
+            except:
+                if buf != None and buf.find(b'***restart***') >= 0:
+                    d.onRestart()
+                    print('Client Restart')
+                    break
+
+            currentStep += 1
+            bufState = None
+            action = None
+            if currentStep != arguments.max_steps:
+                if buf != None:
+                    buf, action, state, bufState = d.drive(buf.decode(), RL)
+            else:
+                buf = '(meta 1)'
+
+            if verbose:
+                print('Sending: ', buf)
+            #print(currentStep)
+            if buf != None and oldStep != []:
+                try:
+                    b = buf.encode()
+                    sock.sendto(b, (arguments.host_ip, arguments.host_port))
+                except socket.error as msg:
+                    print("Failed to send data...Exiting...")
+                    sys.exit(-1)
+                #print(bufState.decode())
+                reward = rw.lng_trans(bufState)
+                episode_rewards_sum += reward
+                d.atualiza(RL, state, action, reward, oldStep)
+                if (currentStep > 200) and (currentStep % 5 == 0):
                     RL.learn()
 
-    curEpisode += 1
+        maximumDistanceTraveled = max(float(bufState['distRaced'][0]), maximumDistanceTraveled)
+        maximumRewardRecorded = max(episode_rewards_sum, maximumRewardRecorded)
+        print("==========================================")
+        print("Episode:", curEpisode)
+        print("Reward:", episode_rewards_sum)
+        print("Steps for this Episode:", currentStep)
+        print("Mean Reward:", episode_rewards_sum/currentStep)
+        print("Distance traveled:", float(bufState['distRaced'][0]))
+        print("Max distance traveled so far:", maximumDistanceTraveled)
+        print("Max reward so far:", maximumRewardRecorded)
+        print("==========================================")
 
-    if curEpisode == arguments.max_episodes:
-        shutdownClient = True
+        curEpisode += 1
+
+        if curEpisode == arguments.max_episodes:
+            shutdownClient = True
 
 
 sock.close()
