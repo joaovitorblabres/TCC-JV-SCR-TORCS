@@ -59,9 +59,9 @@ d = driver.Driver(arguments.stage)
 if __name__ == "__main__":
     if arguments.alg == 0:
         RL = DQL.DeepQNetwork(4, 30,
-                      learning_rate=0.01,
-                      reward_decay=0.9,
-                      e_greedy=0.9,
+                      learning_rate=0.001,
+                      reward_decay=0.99,
+                      e_greedy=0.99,
                       replace_target_iter=200,
                       memory_size=2000,
                       # output_graph=True
@@ -76,6 +76,7 @@ if __name__ == "__main__":
 
 maximumRewardRecorded = -5000000
 maximumDistanceTraveled = -5000
+traveled = -500
 with tf.device('/device:GPU:0'):
     while not shutdownClient:
         while True:
@@ -111,7 +112,7 @@ with tf.device('/device:GPU:0'):
         episode_rewards_sum = 0
         oldStep = []
         state = []
-        travaled = -500
+        traveled = -500
         while True:
             # wait for an answer from server
             buf = None
@@ -192,14 +193,14 @@ with tf.device('/device:GPU:0'):
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
-        maximumDistanceTraveled = max(float(bufState['distRaced'][0]), maximumDistanceTraveled)
+        maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
         maximumRewardRecorded = max(episode_rewards_sum, maximumRewardRecorded)
         print("==========================================")
         print("Episode:", curEpisode)
         print("Reward:", episode_rewards_sum)
         print("Steps for this Episode:", currentStep)
         print("Mean Reward:", episode_rewards_sum/currentStep)
-        print("Distance traveled:", float(bufState['distRaced'][0]))
+        print("Distance traveled:", traveled)
         print("Max distance traveled so far:", maximumDistanceTraveled)
         print("Max reward so far:", maximumRewardRecorded)
         print("==========================================")

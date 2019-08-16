@@ -32,7 +32,8 @@ class Driver(object):
         self.steer_lock = 0.785398
         self.max_speed = 350
         self.prev_rpm = None
-        self.rpmList = [0, 100, 3000,3500,4000,4800,5200,5600]
+        self.rpmListUp = [1500, 8000, 8000, 8000, 8000, 8000, 8000, 8000]
+        self.rpmListDown = [0, 100, 3000, 3500, 4000, 4800, 5200, 5600]
 
     def init(self):
         '''Return init string with rangefinder angles'''
@@ -91,11 +92,10 @@ class Driver(object):
                 up = True
             else:
                 up = False
-
-        if up and rpm > 8000 and gear < 7:
+        if up and rpm > self.rpmListUp[gear] and gear < 7:
             gear += 1
 
-        if rpm < self.rpmList[gear]:
+        if rpm < self.rpmListDown[gear]:
             gear -= 1
 
         self.control.setGear(gear)
