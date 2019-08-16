@@ -5,6 +5,7 @@ import driver
 import rewards as rw
 import tensorflow as tf
 import DQLearning as DQL
+import AC
 
 if __name__ == '__main__':
     pass
@@ -26,6 +27,8 @@ parser.add_argument('--track', action='store', dest='track', default=None,
                     help='Name of the track')
 parser.add_argument('--stage', action='store', dest='stage', type=int, default=3,
                     help='Stage (0 - Warm-Up, 1 - Qualifying, 2 - Race, 3 - Unknown)')
+parser.add_argument('--alg', action='store', dest='alg', type=int, default=0,
+                    help='Algoritmo (0 - DQLearning, 1 - AC)')
 
 arguments = parser.parse_args()
 
@@ -54,8 +57,8 @@ verbose = False
 d = driver.Driver(arguments.stage)
 
 if __name__ == "__main__":
-    # maze game
-    RL = DQL.DeepQNetwork(4, 30,
+    if arguments.alg == 0:
+        RL = DQL.DeepQNetwork(4, 30,
                       learning_rate=0.01,
                       reward_decay=0.9,
                       e_greedy=0.9,
@@ -63,6 +66,14 @@ if __name__ == "__main__":
                       memory_size=2000,
                       # output_graph=True
                   )
+    if arguments.alg == 1:
+        N_F = 30
+        N_A = 4
+        sess = tf.Session()
+        actor = AC.Actor(sess, n_features=AC.N_F, n_actions=AC.N_A, lr=AC.LR_A)
+        critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
+        sess.run(tf.global_variables_initializer())
+
 maximumRewardRecorded = -5000000
 maximumDistanceTraveled = -5000
 with tf.device('/device:GPU:0'):
@@ -100,6 +111,7 @@ with tf.device('/device:GPU:0'):
         episode_rewards_sum = 0
         oldStep = []
         state = []
+        travaled = -500
         while True:
             # wait for an answer from server
             buf = None
@@ -141,11 +153,14 @@ with tf.device('/device:GPU:0'):
                     break
 
             currentStep += 1
-            bufState = None
+            bufState = 0
             action = None
             if currentStep != arguments.max_steps:
                 if buf != None:
-                    buf, action, state, bufState = d.drive(buf.decode(), RL)
+                    if arguments.alg == 0:
+                        buf, action, state, bufState = d.drive(buf.decode(), RL)
+                    if arguments.alg == 1:
+                        buf, action, state, bufState = d.drive(buf.decode(), actor)
             else:
                 buf = '(meta 1)'
 
@@ -160,12 +175,23 @@ with tf.device('/device:GPU:0'):
                     print("Failed to send data...Exiting...")
                     sys.exit(-1)
                 #print(bufState.decode())
+                try:
+                    traveled = max(float(bufState['distRaced'][0]), traveled)
+                except:
+                    pass
                 reward = rw.lng_trans(bufState)
                 episode_rewards_sum += reward
-                d.atualiza(RL, state, action, reward, oldStep)
-                if (currentStep > 200) and (currentStep % 5 == 0):
-                    RL.learn()
+                if arguments.alg == 0:
+                    d.atualiza(RL, oldStep, action, reward, state)
+                    if (currentStep > 200) and (currentStep % 5 == 0):
+                        RL.learn()
+                if arguments.alg == 1:
+                    td_error = critic.learn(oldStep, reward, state)
+                    actor.learn(oldStep, action, td_error)
 
+        #print(bufState)
+        #if bufState['distRaced'][0] == None:
+            #bufState['distRaced'][0] = 0
         maximumDistanceTraveled = max(float(bufState['distRaced'][0]), maximumDistanceTraveled)
         maximumRewardRecorded = max(episode_rewards_sum, maximumRewardRecorded)
         print("==========================================")

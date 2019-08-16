@@ -32,7 +32,7 @@ class Driver(object):
         self.steer_lock = 0.785398
         self.max_speed = 350
         self.prev_rpm = None
-        self.rpmList = [0, 100,3000,4000,4800,5200,5600]
+        self.rpmList = [0, 100, 3000,3500,4000,4800,5200,5600]
 
     def init(self):
         '''Return init string with rangefinder angles'''
@@ -58,18 +58,19 @@ class Driver(object):
         		n.append(i)
         new = np.array(n)
         action = RL.choose_action(new)
+        #print(action)
         #action = tm.train(np.array(n))
         if action == 0:
             self.steer(1, 0)
         elif action == 1:
             self.steer(0, 1)
-        #
-        self.gear()
-        #
         if action == 2:
             self.speed(1, 0)
         elif action == 3:
             self.speed(0, 1)
+        #
+        self.gear()
+        #
 
         return (self.control.toMsg(), action, new, new_msg)
 
@@ -77,7 +78,7 @@ class Driver(object):
         RL.store_transition(state, action, reward, state_)
 
     def steer(self, steeringLeft, steeringRight):
-        self.control.setSteer(max(steeringLeft, steeringRight))
+        self.control.setSteer(steeringRight - steeringLeft)
 
     def gear(self):
         rpm = self.state.getRpm()
@@ -91,7 +92,7 @@ class Driver(object):
             else:
                 up = False
 
-        if up and rpm > 8000:
+        if up and rpm > 8000 and gear < 7:
             gear += 1
 
         if rpm < self.rpmList[gear]:
@@ -100,7 +101,8 @@ class Driver(object):
         self.control.setGear(gear)
 
     def speed(self, accel, brake):
-        self.control.setAccel(max(accel, brake))
+        self.control.setAccel(accel)
+        self.control.setBrake(brake)
 
 
     def onShutDown(self):
