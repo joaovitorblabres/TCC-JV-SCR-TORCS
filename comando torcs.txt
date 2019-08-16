@@ -1,0 +1,1 @@
+wtorcs.exe -r config\raceman\practice.xml -nofuel -nodamage
