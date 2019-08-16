@@ -1,5 +1,6 @@
 import sys
 import argparse
+import subprocess
 import socket
 import driver
 import rewards as rw
@@ -55,7 +56,7 @@ curEpisode = 0
 
 verbose = False
 d = driver.Driver(arguments.stage)
-
+sess = tf.Session()
 if __name__ == "__main__":
     if arguments.alg == 0:
         RL = DQL.DeepQNetwork(4, 30,
@@ -66,6 +67,7 @@ if __name__ == "__main__":
                       memory_size=2000,
                       # output_graph=True
                   )
+        sess = RL.sess
     if arguments.alg == 1:
         N_F = 30
         N_A = 4
@@ -77,8 +79,36 @@ if __name__ == "__main__":
 maximumRewardRecorded = -5000000
 maximumDistanceTraveled = -5000
 traveled = -500
+from time import sleep
+import ctypes
+user32 = ctypes.windll.user32
+saver = tf.train.Saver()
+saveList = []
 with tf.device('/device:GPU:0'):
     while not shutdownClient:
+        # user32.keybd_event(0x12, 0, 0, 0) #Alt
+        # sleep(0.1)
+        # user32.keybd_event(0x09, 0, 0, 0) #Tab
+        # sleep(0.1)
+        # user32.keybd_event(0x09, 0, 2, 0) #~Tab
+        # sleep(0.1)
+        # user32.keybd_event(0x12, 0, 2, 0) #~Alt
+        # sleep(1)
+        # user32.keybd_event(0x11, 0, 0, 0) #up
+        # sleep(0.1)
+        # user32.keybd_event(0x56, 0, 0, 0) #v
+        # sleep(1)
+        # user32.keybd_event(0x56, 0, 2, 0) #~up
+        # sleep(0.1)
+        # user32.keybd_event(0x11, 0, 2, 0) #~up
+        # sleep(0.1)
+        # user32.keybd_event(0x12, 0, 0, 0) #Alt
+        # sleep(0.1)
+        # user32.keybd_event(0x09, 0, 0, 0) #Tab
+        # sleep(0.1)
+        # user32.keybd_event(0x09, 0, 2, 0) #~Tab
+        # sleep(0.1)
+        # user32.keybd_event(0x12, 0, 2, 0) #~Alt
         while True:
             #print('Sending id to server: ', arguments.id)
             buf = arguments.id + d.init()
@@ -106,7 +136,6 @@ with tf.device('/device:GPU:0'):
                 if buf.find(b'***identified***') >= 0:
                     print('Received: ', buf)
                     break
-
 
         currentStep = 0
         episode_rewards_sum = 0
@@ -184,7 +213,7 @@ with tf.device('/device:GPU:0'):
                 episode_rewards_sum += reward
                 if arguments.alg == 0:
                     d.atualiza(RL, oldStep, action, reward, state)
-                    if (currentStep > 200) and (currentStep % 5 == 0):
+                    if (currentStep > 200) and (currentStep % 20 == 0):
                         RL.learn()
                 if arguments.alg == 1:
                     td_error = critic.learn(oldStep, reward, state)
@@ -193,8 +222,11 @@ with tf.device('/device:GPU:0'):
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
+        if curEpisode + 1 in [2**i for i in range(10, 32 + 1)]:
+            saved_path = saver.save(sess, './my-model_'+str(curEpisode))
+            saveList.append(saved_path)
         maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
-        maximumRewardRecorded = max(episode_rewards_sum, maximumRewardRecorded)
+        maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
         print("==========================================")
         print("Episode:", curEpisode)
         print("Reward:", episode_rewards_sum)

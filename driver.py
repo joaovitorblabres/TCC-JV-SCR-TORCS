@@ -32,7 +32,7 @@ class Driver(object):
         self.steer_lock = 0.785398
         self.max_speed = 350
         self.prev_rpm = None
-        self.rpmListUp = [1500, 8000, 8000, 8000, 8000, 8000, 8000, 8000]
+        self.rpmListUp = [1000, 8000, 8000, 8000, 8000, 8000, 8000, 8000]
         self.rpmListDown = [0, 100, 3000, 3500, 4000, 4800, 5200, 5600]
 
     def init(self):

@@ -1,1 +1,2 @@
+cd \"Program Files (x86)"\torcs\
 wtorcs.exe -r config\raceman\practice.xml -nofuel -nodamage
