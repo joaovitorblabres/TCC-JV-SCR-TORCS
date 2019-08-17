@@ -86,29 +86,29 @@ saver = tf.train.Saver()
 saveList = []
 with tf.device('/device:GPU:0'):
     while not shutdownClient:
-        # user32.keybd_event(0x12, 0, 0, 0) #Alt
-        # sleep(0.1)
-        # user32.keybd_event(0x09, 0, 0, 0) #Tab
-        # sleep(0.1)
-        # user32.keybd_event(0x09, 0, 2, 0) #~Tab
-        # sleep(0.1)
-        # user32.keybd_event(0x12, 0, 2, 0) #~Alt
-        # sleep(1)
-        # user32.keybd_event(0x11, 0, 0, 0) #up
-        # sleep(0.1)
-        # user32.keybd_event(0x56, 0, 0, 0) #v
-        # sleep(1)
-        # user32.keybd_event(0x56, 0, 2, 0) #~up
-        # sleep(0.1)
-        # user32.keybd_event(0x11, 0, 2, 0) #~up
-        # sleep(0.1)
-        # user32.keybd_event(0x12, 0, 0, 0) #Alt
-        # sleep(0.1)
-        # user32.keybd_event(0x09, 0, 0, 0) #Tab
-        # sleep(0.1)
-        # user32.keybd_event(0x09, 0, 2, 0) #~Tab
-        # sleep(0.1)
-        # user32.keybd_event(0x12, 0, 2, 0) #~Alt
+        user32.keybd_event(0x12, 0, 0, 0) #Alt
+        sleep(0.1)
+        user32.keybd_event(0x09, 0, 0, 0) #Tab
+        sleep(0.1)
+        user32.keybd_event(0x09, 0, 2, 0) #~Tab
+        sleep(0.1)
+        user32.keybd_event(0x12, 0, 2, 0) #~Alt
+        sleep(1)
+        user32.keybd_event(0x11, 0, 0, 0) #up
+        sleep(0.1)
+        user32.keybd_event(0x56, 0, 0, 0) #v
+        sleep(1)
+        user32.keybd_event(0x56, 0, 2, 0) #~up
+        sleep(0.1)
+        user32.keybd_event(0x11, 0, 2, 0) #~up
+        sleep(0.1)
+        user32.keybd_event(0x12, 0, 0, 0) #Alt
+        sleep(0.1)
+        user32.keybd_event(0x09, 0, 0, 0) #Tab
+        sleep(0.1)
+        user32.keybd_event(0x09, 0, 2, 0) #~Tab
+        sleep(0.1)
+        user32.keybd_event(0x12, 0, 2, 0) #~Alt
         while True:
             #print('Sending id to server: ', arguments.id)
             buf = arguments.id + d.init()
