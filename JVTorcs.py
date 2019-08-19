@@ -1,12 +1,14 @@
+from time import sleep
 import sys
 import argparse
-import subprocess
 import socket
 import driver
 import rewards as rw
 import tensorflow as tf
 import DQLearning as DQL
 import AC
+import subprocess
+import os
 
 if __name__ == '__main__':
     pass
@@ -81,41 +83,24 @@ if __name__ == "__main__":
 maximumRewardRecorded = -5000000
 maximumDistanceTraveled = -5000
 traveled = -500
-from time import sleep
-import ctypes
-user32 = ctypes.windll.user32
 saver = tf.train.Saver()
-saveList = []
-def altTab():
-    user32.keybd_event(0x12, 0, 0, 0) #Alt
-    sleep(0.1)
-    user32.keybd_event(0x09, 0, 0, 0) #Tab
-    sleep(0.1)
-    user32.keybd_event(0x09, 0, 2, 0) #~Tab
-    sleep(0.1)
-    user32.keybd_event(0x12, 0, 2, 0) #~Alt
-    sleep(1)
-    user32.keybd_event(0x11, 0, 0, 0) #up
-    sleep(0.1)
-    user32.keybd_event(0x56, 0, 0, 0) #v
-    sleep(1)
-    user32.keybd_event(0x56, 0, 2, 0) #~up
-    sleep(0.1)
-    user32.keybd_event(0x11, 0, 2, 0) #~up
-    sleep(0.1)
-    user32.keybd_event(0x12, 0, 0, 0) #Alt
-    sleep(0.1)
-    user32.keybd_event(0x09, 0, 0, 0) #Tab
-    sleep(0.1)
-    user32.keybd_event(0x09, 0, 2, 0) #~Tab
-    sleep(0.1)
-    user32.keybd_event(0x12, 0, 2, 0) #~Alt
+dirpath = os.getcwd()
+algo = ''
+if arguments.alg == 0:
+    algo = 'DQL'
+elif arguments.alg == 1:
+    algo = 'AC'
+
 with tf.device('/device:GPU:0'):
     if arguments.restore == 1:
-        saver.restore(sess, 'C:\\Users\\joaov\\Documents\\GitHub\\TCC-JV\\my-model_1023')
-        curEpisode = 1024
+        restore = dirpath + "\\" + algo + "\\"
+        saver.restore(sess, restore + 'lr_0.001_8191')
+        curEpisode = 8192
     while not shutdownClient:
-        altTab()
+        os.chdir(r'C:\\Program Files (x86)\\torcs\\')
+        p = subprocess.Popen(['python', r'C:\Program Files (x86)\torcs\openTorcs.py ', str(arguments.host_port%3001)], stdin=None, stderr=None, stdout=None, shell=None)
+        os.chdir(dirpath)
+
         while True:
             #print('Sending id to server: ', arguments.id)
             buf = arguments.id + d.init()
@@ -180,12 +165,12 @@ with tf.device('/device:GPU:0'):
             try:
                 buf.encode()
                 if buf != None and buf.find('***restart***') >= 0:
-                    d.onRestart()
+                    #d.onRestart()
                     print('Client Restart')
                     break
             except:
                 if buf != None and buf.find(b'***restart***') >= 0:
-                    d.onRestart()
+                    #d.onRestart()
                     print('Client Restart')
                     break
 
@@ -229,14 +214,8 @@ with tf.device('/device:GPU:0'):
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
-        if curEpisode + 1 in [2**i for i in range(10, 32 + 1)]:
-            algo = ''
-            if arguments.alg == 0:
-                algo = 'DQL'
-            elif arguments.alg == 1:
-                algo = 'AC'
+        if curEpisode + 1 > 10000 and curEpisode%2000 == 0:
             saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
-            saveList.append(saved_path)
         maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
         maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
         print("==========================================")
