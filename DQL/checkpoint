@@ -1,3 +1,4 @@
-model_checkpoint_path: "lr_0.001_4095"
+model_checkpoint_path: "lr_0.001_8191"
 all_model_checkpoint_paths: "lr_0.001_2047"
 all_model_checkpoint_paths: "lr_0.001_4095"
+all_model_checkpoint_paths: "lr_0.001_8191"
