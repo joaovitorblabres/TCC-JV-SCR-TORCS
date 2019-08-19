@@ -30,6 +30,8 @@ parser.add_argument('--stage', action='store', dest='stage', type=int, default=3
                     help='Stage (0 - Warm-Up, 1 - Qualifying, 2 - Race, 3 - Unknown)')
 parser.add_argument('--alg', action='store', dest='alg', type=int, default=0,
                     help='Algoritmo (0 - DQLearning, 1 - AC)')
+parser.add_argument('--rest', action='store', dest='restore', type=int, default=0,
+                    help='Restore Model (0 - No, 1 - Yes)')
 
 arguments = parser.parse_args()
 
@@ -84,31 +86,36 @@ import ctypes
 user32 = ctypes.windll.user32
 saver = tf.train.Saver()
 saveList = []
+def altTab():
+    user32.keybd_event(0x12, 0, 0, 0) #Alt
+    sleep(0.1)
+    user32.keybd_event(0x09, 0, 0, 0) #Tab
+    sleep(0.1)
+    user32.keybd_event(0x09, 0, 2, 0) #~Tab
+    sleep(0.1)
+    user32.keybd_event(0x12, 0, 2, 0) #~Alt
+    sleep(1)
+    user32.keybd_event(0x11, 0, 0, 0) #up
+    sleep(0.1)
+    user32.keybd_event(0x56, 0, 0, 0) #v
+    sleep(1)
+    user32.keybd_event(0x56, 0, 2, 0) #~up
+    sleep(0.1)
+    user32.keybd_event(0x11, 0, 2, 0) #~up
+    sleep(0.1)
+    user32.keybd_event(0x12, 0, 0, 0) #Alt
+    sleep(0.1)
+    user32.keybd_event(0x09, 0, 0, 0) #Tab
+    sleep(0.1)
+    user32.keybd_event(0x09, 0, 2, 0) #~Tab
+    sleep(0.1)
+    user32.keybd_event(0x12, 0, 2, 0) #~Alt
 with tf.device('/device:GPU:0'):
+    if arguments.restore == 1:
+        saver.restore(sess, 'C:\\Users\\joaov\\Documents\\GitHub\\TCC-JV\\my-model_1023')
+        curEpisode = 1024
     while not shutdownClient:
-        user32.keybd_event(0x12, 0, 0, 0) #Alt
-        sleep(0.1)
-        user32.keybd_event(0x09, 0, 0, 0) #Tab
-        sleep(0.1)
-        user32.keybd_event(0x09, 0, 2, 0) #~Tab
-        sleep(0.1)
-        user32.keybd_event(0x12, 0, 2, 0) #~Alt
-        sleep(1)
-        user32.keybd_event(0x11, 0, 0, 0) #up
-        sleep(0.1)
-        user32.keybd_event(0x56, 0, 0, 0) #v
-        sleep(1)
-        user32.keybd_event(0x56, 0, 2, 0) #~up
-        sleep(0.1)
-        user32.keybd_event(0x11, 0, 2, 0) #~up
-        sleep(0.1)
-        user32.keybd_event(0x12, 0, 0, 0) #Alt
-        sleep(0.1)
-        user32.keybd_event(0x09, 0, 0, 0) #Tab
-        sleep(0.1)
-        user32.keybd_event(0x09, 0, 2, 0) #~Tab
-        sleep(0.1)
-        user32.keybd_event(0x12, 0, 2, 0) #~Alt
+        altTab()
         while True:
             #print('Sending id to server: ', arguments.id)
             buf = arguments.id + d.init()
@@ -223,7 +230,12 @@ with tf.device('/device:GPU:0'):
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
         if curEpisode + 1 in [2**i for i in range(10, 32 + 1)]:
-            saved_path = saver.save(sess, './my-model_'+str(curEpisode))
+            algo = ''
+            if arguments.alg == 0:
+                algo = 'DQL'
+            elif arguments.alg == 1:
+                algo = 'AC'
+            saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
             saveList.append(saved_path)
         maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
         maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
