@@ -7,7 +7,7 @@ Created on Apr 4, 2012
 import msgParser
 import carState
 import carControl
-import torcs_MODELO as tm
+#import torcs_MODELO as tm
 import numpy as np
 import datetime
 
