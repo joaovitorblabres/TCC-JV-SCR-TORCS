@@ -75,8 +75,6 @@ if __name__ == "__main__":
                   )
         sess = RL.sess
     if arguments.alg == 1:
-        N_F = 30
-        N_A = 4
         sess = tf.Session()
         actor = AC.Actor(sess, n_features=AC.N_F, n_actions=AC.N_A, lr=AC.LR_A)
         critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
@@ -95,9 +93,15 @@ elif arguments.alg == 1:
 
 with tf.device('/device:CPU:0'):
     if arguments.restore == 1:
-        restore = dirpath + "/" + algo + "/"
-        saver.restore(sess, restore + 'lr_0.001_10000')
-        curEpisode = 10000
+        if arguments.system == 0:
+            restore = dirpath + "\\" + algo + "\\"
+        else:
+            restore = dirpath + "/" + algo + "/"
+        f = open(restore + "checkpoint", 'r')
+        line = f.readline()
+        lastModel = line.split(' ')[1].replace('\"', '').replace('\n', '')
+        saver.restore(sess, restore + lastModel)
+        curEpisode = int(lastModel.split('_')[2]) + 1
     while not shutdownClient:
         if arguments.system == 0:
             os.chdir(r'C:\\Program Files (x86)\\torcs\\')
