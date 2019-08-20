@@ -13,7 +13,7 @@ gym 0.8.0
 import numpy as np
 import tensorflow as tf
 
-np.random.seed(7)
+np.random.seed(2)
 tf.set_random_seed(2)
 
 # Superparameters
