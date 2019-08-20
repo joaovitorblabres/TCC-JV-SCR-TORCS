@@ -34,6 +34,8 @@ parser.add_argument('--alg', action='store', dest='alg', type=int, default=0,
                     help='Algoritmo (0 - DQLearning, 1 - AC)')
 parser.add_argument('--rest', action='store', dest='restore', type=int, default=0,
                     help='Restore Model (0 - No, 1 - Yes)')
+parser.add_argument('--win', action='store', dest='system', type=int, default=0,
+                    help='Restore Model (0 - win, 1 - linux)')
 
 arguments = parser.parse_args()
 
@@ -91,15 +93,22 @@ if arguments.alg == 0:
 elif arguments.alg == 1:
     algo = 'AC'
 
-with tf.device('/device:GPU:0'):
+with tf.device('/device:CPU:0'):
     if arguments.restore == 1:
-        restore = dirpath + "\\" + algo + "\\"
-        saver.restore(sess, restore + 'lr_0.001_8191')
-        curEpisode = 8192
+        restore = dirpath + "/" + algo + "/"
+        saver.restore(sess, restore + 'lr_0.001_10000')
+        curEpisode = 10000
     while not shutdownClient:
-        os.chdir(r'C:\\Program Files (x86)\\torcs\\')
-        p = subprocess.Popen(['python', r'C:\Program Files (x86)\torcs\openTorcs.py ', str(arguments.host_port%3001)], stdin=None, stderr=None, stdout=None, shell=None)
-        os.chdir(dirpath)
+        if arguments.system == 0:
+            os.chdir(r'C:\\Program Files (x86)\\torcs\\')
+            p = subprocess.Popen(['python', r'C:\Program Files (x86)\torcs\openTorcs.py ', str(arguments.host_port%3001)], stdin=None, stderr=None, stdout=None, shell=None)
+            os.chdir(dirpath)
+        else:
+            #python3 JVTorcs.py --maxEpisodes=500000 --alg=1 --win=1
+            os.chdir(r'../torcs-1.3.7/BUILD/bin/')
+            practice = "practice" + str(arguments.host_port%3001) + ".xml"
+            p = subprocess.Popen('/home/aluno/torcs-1.3.7/BUILD/bin/torcs -r /home/aluno/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+            os.chdir(dirpath)
 
         while True:
             #print('Sending id to server: ', arguments.id)
