@@ -78,6 +78,29 @@ elif arguments.alg == 1:
 elif arguments.alg == 2:
     algo = 'DDPG'
 
+if arguments.alg == 0:
+    RL = DQL.DeepQNetwork(4, 30,
+    learning_rate=0.001,
+    reward_decay=0.99,
+    e_greedy=0.99,
+    replace_target_iter=200,
+    memory_size=2000,
+    # output_graph=True
+    )
+    sess = RL.sess
+elif arguments.alg == 1:
+    sess = tf.Session()
+    actor = AC.Actor(sess, n_features=AC.N_F, n_actions=AC.N_A, lr=AC.LR_A)
+    critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
+    sess.run(tf.global_variables_initializer())
+elif arguments.alg == 2:
+    var = 3
+    actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, DDPG.LR_A, DDPG.REPLACEMENT)
+    critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, DDPG.LR_C, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
+    actor.add_grad_to_graph(critic.a_grads)
+    sess.run(tf.global_variables_initializer())
+    M = DDPG.Memory(DDPG.MEMORY_CAPACITY, dims=2 * DDPG.state_dim + DDPG.action_dim + 1)
+saver = tf.train.Saver()
 if arguments.restore == 1:
     if arguments.system == 0:
         restore = dirpath + "\\" + algo + "\\"
@@ -88,30 +111,6 @@ if arguments.restore == 1:
     lastModel = line.split(' ')[1].replace('\"', '').replace('\n', '')
     saver.restore(sess, restore + lastModel)
     curEpisode = int(lastModel.split('_')[2]) + 1
-else:
-    if arguments.alg == 0:
-        RL = DQL.DeepQNetwork(4, 30,
-                      learning_rate=0.001,
-                      reward_decay=0.99,
-                      e_greedy=0.99,
-                      replace_target_iter=200,
-                      memory_size=2000,
-                      # output_graph=True
-                  )
-        sess = RL.sess
-    elif arguments.alg == 1:
-        sess = tf.Session()
-        actor = AC.Actor(sess, n_features=AC.N_F, n_actions=AC.N_A, lr=AC.LR_A)
-        critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
-        sess.run(tf.global_variables_initializer())
-    elif arguments.alg == 2:
-        var = 3
-        actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, DDPG.LR_A, DDPG.REPLACEMENT)
-        critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, DDPG.LR_C, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
-        actor.add_grad_to_graph(critic.a_grads)
-        sess.run(tf.global_variables_initializer())
-        M = DDPG.Memory(DDPG.MEMORY_CAPACITY, dims=2 * DDPG.state_dim + DDPG.action_dim + 1)
-    saver = tf.train.Saver()
 with tf.device('/device:GPU:0'):
     while not shutdownClient:
         if arguments.system == 0:
