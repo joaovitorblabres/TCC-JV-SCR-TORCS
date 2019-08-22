@@ -1,0 +1,8 @@
+Episode: 15222
+Reward: [-10810.87602888]
+Steps for this Episode: 14170
+Mean Reward: [-0.76294115]
+Distance traveled: 62.2346
+Max distance traveled so far: 498.018
+Max reward so far: [0.46059695]
+
