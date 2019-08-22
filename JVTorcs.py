@@ -33,11 +33,13 @@ parser.add_argument('--track', action='store', dest='track', default=None,
 parser.add_argument('--stage', action='store', dest='stage', type=int, default=3,
                     help='Stage (0 - Warm-Up, 1 - Qualifying, 2 - Race, 3 - Unknown)')
 parser.add_argument('--alg', action='store', dest='alg', type=int, default=0,
-                    help='Algoritmo (0 - DQLearning, 1 - AC)')
+                    help='Algoritmo (0 - DQLearning, 1 - AC, 2 - DDPG)')
 parser.add_argument('--rest', action='store', dest='restore', type=int, default=0,
                     help='Restore Model (0 - No, 1 - Yes)')
 parser.add_argument('--win', action='store', dest='system', type=int, default=0,
                     help='Restore Model (0 - win, 1 - linux)')
+parser.add_argument('--save', action='store', dest='saveEp', type=int, default=2000,
+                    help='Restore Model (default: 2000)')
 
 arguments = parser.parse_args()
 
@@ -121,7 +123,7 @@ with tf.device('/device:GPU:0'):
             #python3 JVTorcs.py --maxEpisodes=500000 --alg=1 --win=1
             os.chdir(r'../torcs-1.3.7/BUILD/bin/')
             practice = "practice" + str(arguments.host_port%3001) + ".xml"
-            p = subprocess.Popen('/home/aluno/torcs-1.3.7/BUILD/bin/torcs -r /home/aluno/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+            p = subprocess.Popen('/home/ttc-jv/torcs-1.3.7/BUILD/bin/torcs -r /home/ttc-jv/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
             os.chdir(dirpath)
 
         while True:
@@ -252,7 +254,7 @@ with tf.device('/device:GPU:0'):
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
-        if curEpisode + 1 > 10000 and curEpisode%2000 == 0:
+        if curEpisode + 1 > 10000 and curEpisode%arguments.saveEp == 0:
             saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
         maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
         maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
