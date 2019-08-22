@@ -6,7 +6,9 @@ import driver
 import rewards as rw
 import tensorflow as tf
 import DQLearning as DQL
+import numpy as np
 import AC
+import DDPG
 import subprocess
 import os
 
@@ -63,7 +65,30 @@ curEpisode = 0
 verbose = False
 d = driver.Driver(arguments.stage)
 sess = tf.Session()
-if __name__ == "__main__":
+
+maximumRewardRecorded = -5000000
+maximumDistanceTraveled = -5000
+traveled = -500
+dirpath = os.getcwd()
+algo = ''
+if arguments.alg == 0:
+    algo = 'DQL'
+elif arguments.alg == 1:
+    algo = 'AC'
+elif arguments.alg == 2:
+    algo = 'DDPG'
+
+if arguments.restore == 1:
+    if arguments.system == 0:
+        restore = dirpath + "\\" + algo + "\\"
+    else:
+        restore = dirpath + "/" + algo + "/"
+    f = open(restore + "checkpoint", 'r')
+    line = f.readline()
+    lastModel = line.split(' ')[1].replace('\"', '').replace('\n', '')
+    saver.restore(sess, restore + lastModel)
+    curEpisode = int(lastModel.split('_')[2]) + 1
+else:
     if arguments.alg == 0:
         RL = DQL.DeepQNetwork(4, 30,
                       learning_rate=0.001,
@@ -74,34 +99,20 @@ if __name__ == "__main__":
                       # output_graph=True
                   )
         sess = RL.sess
-    if arguments.alg == 1:
+    elif arguments.alg == 1:
         sess = tf.Session()
         actor = AC.Actor(sess, n_features=AC.N_F, n_actions=AC.N_A, lr=AC.LR_A)
         critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
         sess.run(tf.global_variables_initializer())
-
-maximumRewardRecorded = -5000000
-maximumDistanceTraveled = -5000
-traveled = -500
-saver = tf.train.Saver()
-dirpath = os.getcwd()
-algo = ''
-if arguments.alg == 0:
-    algo = 'DQL'
-elif arguments.alg == 1:
-    algo = 'AC'
-
-with tf.device('/device:CPU:0'):
-    if arguments.restore == 1:
-        if arguments.system == 0:
-            restore = dirpath + "\\" + algo + "\\"
-        else:
-            restore = dirpath + "/" + algo + "/"
-        f = open(restore + "checkpoint", 'r')
-        line = f.readline()
-        lastModel = line.split(' ')[1].replace('\"', '').replace('\n', '')
-        saver.restore(sess, restore + lastModel)
-        curEpisode = int(lastModel.split('_')[2]) + 1
+    elif arguments.alg == 2:
+        var = 3
+        actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, DDPG.LR_A, DDPG.REPLACEMENT)
+        critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, DDPG.LR_C, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
+        actor.add_grad_to_graph(critic.a_grads)
+        sess.run(tf.global_variables_initializer())
+        M = DDPG.Memory(DDPG.MEMORY_CAPACITY, dims=2 * DDPG.state_dim + DDPG.action_dim + 1)
+    saver = tf.train.Saver()
+with tf.device('/device:GPU:0'):
     while not shutdownClient:
         if arguments.system == 0:
             os.chdir(r'C:\\Program Files (x86)\\torcs\\')
@@ -194,8 +205,10 @@ with tf.device('/device:CPU:0'):
                 if buf != None:
                     if arguments.alg == 0:
                         buf, action, state, bufState = d.drive(buf.decode(), RL)
-                    if arguments.alg == 1:
+                    elif arguments.alg == 1:
                         buf, action, state, bufState = d.drive(buf.decode(), actor)
+                    elif arguments.alg == 2:
+                        buf, action, state, bufState = d.drive(buf.decode(), actor, 1)
             else:
                 buf = '(meta 1)'
 
@@ -214,15 +227,28 @@ with tf.device('/device:CPU:0'):
                     traveled = max(float(bufState['distRaced'][0]), traveled)
                 except:
                     pass
-                reward = rw.lng_trans(bufState)
+                reward = rw.lng_trans_heavy_penalty(bufState)
                 episode_rewards_sum += reward
                 if arguments.alg == 0:
                     d.atualiza(RL, oldStep, action, reward, state)
                     if (currentStep > 200) and (currentStep % 20 == 0):
                         RL.learn()
-                if arguments.alg == 1:
+                elif arguments.alg == 1:
                     td_error = critic.learn(oldStep, reward, state)
                     actor.learn(oldStep, action, td_error)
+                elif arguments.alg == 2:
+                    M.store_transition(oldStep, action, reward[0] / 10, state)
+
+                    if M.pointer > DDPG.MEMORY_CAPACITY:
+                        var *= .9995    # decay the action randomness
+                        b_M = M.sample(DDPG.BATCH_SIZE)
+                        b_s = b_M[:, :DDPG.state_dim]
+                        b_a = b_M[:, DDPG.state_dim: DDPG.state_dim + DDPG.action_dim]
+                        b_r = b_M[:, -DDPG.state_dim - 1: -DDPG.state_dim]
+                        b_s_ = b_M[:, -DDPG.state_dim:]
+
+                        critic.learn(b_s, b_a, b_r, b_s_)
+                        actor.learn(b_s)
 
         #print(bufState)
         #if bufState['distRaced'][0] == None:
