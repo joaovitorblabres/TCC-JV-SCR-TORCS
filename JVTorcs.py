@@ -73,6 +73,7 @@ maximumDistanceTraveled = -5000
 traveled = -500
 dirpath = os.getcwd()
 algo = ''
+restartN = 0
 if arguments.alg == 0:
     algo = 'DQL'
 elif arguments.alg == 1:
@@ -166,8 +167,10 @@ with tf.device('/device:GPU:0'):
             try:
                 buf, addr = sock.recvfrom(1000)
             except socket.error as msg:
-                pass
-                #print("didn't get response from server...")
+                #print("didn't get response from server when executing...")
+                restartN += 1
+                break
+                #pass
 
             if verbose:
                 pass
@@ -265,7 +268,8 @@ with tf.device('/device:GPU:0'):
         print("Mean Reward:", episode_rewards_sum/currentStep)
         print("Distance traveled:", traveled)
         print("Max distance traveled so far:", maximumDistanceTraveled)
-        print("Max reward so far:", maximumRewardRecorded)
+        print("Max mean reward so far:", maximumRewardRecorded)
+        print("Number of restars:", restartN)
         print("==========================================")
 
         curEpisode += 1
