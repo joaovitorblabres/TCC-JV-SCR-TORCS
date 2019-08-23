@@ -11,6 +11,7 @@ import AC
 import DDPG
 import subprocess
 import os
+import math
 
 if __name__ == '__main__':
     pass
@@ -160,6 +161,7 @@ with tf.device('/device:GPU:0'):
         oldStep = []
         state = []
         traveled = -500
+
         while True:
             # wait for an answer from server
             buf = None
@@ -168,6 +170,7 @@ with tf.device('/device:GPU:0'):
                 buf, addr = sock.recvfrom(1000)
             except socket.error as msg:
                 #print("didn't get response from server when executing...")
+                subprocess.run(["killall", "torcs-bin"])
                 restartN += 1
                 break
                 #pass
@@ -257,20 +260,21 @@ with tf.device('/device:GPU:0'):
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
-        if curEpisode%arguments.saveEp == 0:
+        if curEpisode % arguments.saveEp == 0:
             saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
-        maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
-        maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
-        print("==========================================")
-        print("Episode:", curEpisode)
-        print("Reward:", episode_rewards_sum)
-        print("Steps for this Episode:", currentStep)
-        print("Mean Reward:", episode_rewards_sum/currentStep)
-        print("Distance traveled:", traveled)
-        print("Max distance traveled so far:", maximumDistanceTraveled)
-        print("Max mean reward so far:", maximumRewardRecorded)
-        print("Number of restars:", restartN)
-        print("==========================================")
+        if math.isnan(reward) == False:
+            maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
+            maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
+            print("==========================================")
+            print("Episode:", curEpisode)
+            print("Reward:", episode_rewards_sum)
+            print("Steps for this Episode:", currentStep)
+            print("Mean Reward:", episode_rewards_sum/currentStep)
+            print("Distance traveled:", traveled)
+            print("Max distance traveled so far:", maximumDistanceTraveled)
+            print("Max mean reward so far:", maximumRewardRecorded)
+            print("Number of restars:", restartN)
+            print("==========================================")
 
         curEpisode += 1
 
