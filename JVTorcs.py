@@ -254,7 +254,7 @@ with tf.device('/device:GPU:0'):
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
-        if curEpisode + 1 > 10000 and curEpisode%arguments.saveEp == 0:
+        if curEpisode%arguments.saveEp == 0:
             saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
         maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
         maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
