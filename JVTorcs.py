@@ -40,6 +40,10 @@ parser.add_argument('--win', action='store', dest='system', type=int, default=0,
                     help='Restore Model (0 - win, 1 - linux)')
 parser.add_argument('--save', action='store', dest='saveEp', type=int, default=2000,
                     help='Restore Model (default: 2000)')
+parser.add_argument('--lra', action='store', dest='lra', type=int, default=0,
+                    help='Learning Rate Actor/Commun')
+parser.add_argument('--lrc', action='store', dest='lrc', type=int, default=1,
+                    help='Learning Rate Critic')
 
 arguments = parser.parse_args()
 
@@ -73,6 +77,13 @@ maximumDistanceTraveled = -5000
 traveled = -500
 dirpath = os.getcwd()
 algo = ''
+lrAs = [0.0001, 0.001, 0.01, 0.1]
+lrCs = [0.0001, 0.001, 0.01, 0.1]
+
+lrActor = lrAs[arguments.lra]
+lrCritic = lrCs[arguments.lrc]
+#python JVTorcs.py --maxEpisodes=500000 --alg=2 --save=100 --port=3001 --rest=1 --lra=2 --lrc=3
+
 if arguments.alg == 0:
     algo = 'DQL'
 elif arguments.alg == 1:
@@ -82,32 +93,32 @@ elif arguments.alg == 2:
 
 if arguments.alg == 0:
     RL = DQL.DeepQNetwork(4, 30,
-    learning_rate=0.001,
-    reward_decay=0.99,
-    e_greedy=0.99,
-    replace_target_iter=200,
-    memory_size=2000,
-    # output_graph=True
+        learning_rate=lrActor,
+        reward_decay=0.99,
+        e_greedy=0.99,
+        replace_target_iter=200,
+        memory_size=2000,
+        # output_graph=True
     )
     sess = RL.sess
 elif arguments.alg == 1:
     sess = tf.Session()
-    actor = AC.Actor(sess, n_features=AC.N_F, n_actions=AC.N_A, lr=AC.LR_A)
+    actor = AC.Actor(sess, n_features=AC.N_F, n_actions=AC.N_A, lr=lrActor)
     critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
     sess.run(tf.global_variables_initializer())
 elif arguments.alg == 2:
     var = 3
-    actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, DDPG.LR_A, DDPG.REPLACEMENT)
-    critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, DDPG.LR_C, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
+    actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, lrActor, DDPG.REPLACEMENT)
+    critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, lrCritic, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
     actor.add_grad_to_graph(critic.a_grads)
     sess.run(tf.global_variables_initializer())
     M = DDPG.Memory(DDPG.MEMORY_CAPACITY, dims=2 * DDPG.state_dim + DDPG.action_dim + 1)
 saver = tf.train.Saver()
 if arguments.restore == 1:
     if arguments.system == 0:
-        restore = dirpath + "\\" + algo + "\\"
+        restore = dirpath + "\\" + algo + "\\LR" + str(lrActor) + "\\"
     else:
-        restore = dirpath + "/" + algo + "/"
+        restore = dirpath + "/" + algo + "/LR" + str(lrActor) + "/"
     f = open(restore + "checkpoint", 'r')
     line = f.readline()
     lastModel = line.split(' ')[1].replace('\"', '').replace('\n', '')
@@ -255,7 +266,7 @@ with tf.device('/device:GPU:0'):
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
         if curEpisode%arguments.saveEp == 0:
-            saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
+            saved_path = saver.save(sess, './' + algo + '/LR' + str(lrActor) + '/T1_' + str(curEpisode) + '')
         maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
         maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
         print("==========================================")
