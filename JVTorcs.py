@@ -11,6 +11,7 @@ import AC
 import DDPG
 import subprocess
 import os
+import math
 
 if __name__ == '__main__':
     pass
@@ -84,6 +85,7 @@ lrActor = lrAs[arguments.lra]
 lrCritic = lrCs[arguments.lrc]
 #python JVTorcs.py --maxEpisodes=500000 --alg=2 --save=100 --port=3001 --rest=1 --lra=2 --lrc=3
 
+restartN = 0
 if arguments.alg == 0:
     algo = 'DQL'
 elif arguments.alg == 1:
@@ -170,6 +172,7 @@ with tf.device('/device:GPU:0'):
         oldStep = []
         state = []
         traveled = -500
+
         while True:
             # wait for an answer from server
             buf = None
@@ -177,8 +180,11 @@ with tf.device('/device:GPU:0'):
             try:
                 buf, addr = sock.recvfrom(1000)
             except socket.error as msg:
-                pass
-                #print("didn't get response from server...")
+                #print("didn't get response from server when executing...")
+                subprocess.run(["killall", "torcs-bin"])
+                restartN += 1
+                break
+                #pass
 
             if verbose:
                 pass
@@ -265,19 +271,21 @@ with tf.device('/device:GPU:0'):
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
-        if curEpisode%arguments.saveEp == 0:
-            saved_path = saver.save(sess, './' + algo + '/LR' + str(lrActor) + '/T1_' + str(curEpisode) + '')
-        maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
-        maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
-        print("==========================================")
-        print("Episode:", curEpisode)
-        print("Reward:", episode_rewards_sum)
-        print("Steps for this Episode:", currentStep)
-        print("Mean Reward:", episode_rewards_sum/currentStep)
-        print("Distance traveled:", traveled)
-        print("Max distance traveled so far:", maximumDistanceTraveled)
-        print("Max reward so far:", maximumRewardRecorded)
-        print("==========================================")
+        if curEpisode % arguments.saveEp == 0:
+            saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
+        if math.isnan(reward) == False:
+            maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
+            maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
+            print("==========================================")
+            print("Episode:", curEpisode)
+            print("Reward:", episode_rewards_sum)
+            print("Steps for this Episode:", currentStep)
+            print("Mean Reward:", episode_rewards_sum/currentStep)
+            print("Distance traveled:", traveled)
+            print("Max distance traveled so far:", maximumDistanceTraveled)
+            print("Max mean reward so far:", maximumRewardRecorded)
+            print("Number of restars:", restartN)
+            print("==========================================")
 
         curEpisode += 1
 
