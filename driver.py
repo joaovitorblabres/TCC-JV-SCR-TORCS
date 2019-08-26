@@ -49,7 +49,7 @@ class Driver(object):
 
         return self.parser.stringify({'init': self.angles})
 
-    def drive(self, msg, RL, alg=0):
+    def drive(self, msg, RL, alg=0, var=0):
         new_msg = self.state.setFromMsg(msg)
         #print(new_msg)
         ## ADICIONAR O TREINAMENTO AQUI
@@ -71,7 +71,7 @@ class Driver(object):
             elif action == 3:
                 self.speed(0, 1)
         elif alg == 1:
-            action = np.clip(np.random.normal(action, 3), [-1, 0, 0], [1, 1, 1])    # add randomness to action selection for exploration
+            action = np.clip(np.random.normal(action, var), [-1, 0, 0], [1, 1, 1])    # add randomness to action selection for exploration
             self.steer(steeringRight=action[0], steeringLeft=0)
             self.speed(action[1], action[2])
         #

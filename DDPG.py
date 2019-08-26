@@ -25,7 +25,7 @@ REPLACEMENT = [
     dict(name='soft', tau=0.001),
     dict(name='hard', rep_iter_a=600, rep_iter_c=500)
 ][0]            # you can try different target replacement strategies
-MEMORY_CAPACITY = 100000
+MEMORY_CAPACITY = 10000000
 BATCH_SIZE = 32
 
 RENDER = False

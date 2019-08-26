@@ -135,9 +135,9 @@ with tf.device('/device:GPU:0'):
             os.chdir(dirpath)
         else:
             #python3 JVTorcs.py --maxEpisodes=500000 --alg=1 --win=1
-            os.chdir(r'../torcs-1.3.7/BUILD/bin/')
+            #os.chdir(r'../torcs-1.3.7/BUILD/bin/')
             practice = "practice" + str(arguments.host_port%3001) + ".xml"
-            p = subprocess.Popen('/home/ttc-jv/torcs-1.3.7/BUILD/bin/torcs -r /home/ttc-jv/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+            p = subprocess.Popen('torcs -r ~/.torcs/config/raceman/'+ practice +' -nofuel -nodamage', shell=True)
             os.chdir(dirpath)
 
         while True:
@@ -173,6 +173,7 @@ with tf.device('/device:GPU:0'):
         oldStep = []
         state = []
         traveled = -500
+        reward = 0
 
         while True:
             # wait for an answer from server
@@ -227,7 +228,7 @@ with tf.device('/device:GPU:0'):
                     elif arguments.alg == 1:
                         buf, action, state, bufState = d.drive(buf.decode(), actor)
                     elif arguments.alg == 2:
-                        buf, action, state, bufState = d.drive(buf.decode(), actor, 1)
+                        buf, action, state, bufState = d.drive(buf.decode(), actor, 1, var)
             else:
                 buf = '(meta 1)'
 
@@ -259,7 +260,7 @@ with tf.device('/device:GPU:0'):
                     M.store_transition(oldStep, action, reward[0] / 10, state)
 
                     if M.pointer > DDPG.MEMORY_CAPACITY:
-                        var *= .9995    # decay the action randomness
+                        var *= .99995    # decay the action randomness
                         b_M = M.sample(DDPG.BATCH_SIZE)
                         b_s = b_M[:, :DDPG.state_dim]
                         b_a = b_M[:, DDPG.state_dim: DDPG.state_dim + DDPG.action_dim]
@@ -274,7 +275,7 @@ with tf.device('/device:GPU:0'):
             #bufState['distRaced'][0] = 0
         if curEpisode % arguments.saveEp == 0:
             saved_path = saver.save(sess, './' + algo + '/lr_'+str(lrActor)+'_'+str(curEpisode)+'')
-        if math.isnan(reward) == False:
+        if math.isnan(reward) == False and currentStep > 0:
             maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
             maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
             print("==========================================")
