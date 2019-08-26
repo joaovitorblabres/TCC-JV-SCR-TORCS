@@ -1,0 +1,2 @@
+model_checkpoint_path: "lr_0.0001_0"
+all_model_checkpoint_paths: "lr_0.0001_0"

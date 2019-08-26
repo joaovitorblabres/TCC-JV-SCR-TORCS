@@ -84,6 +84,7 @@ lrCs = [0.0001, 0.001, 0.01, 0.1]
 lrActor = lrAs[arguments.lra]
 lrCritic = lrCs[arguments.lrc]
 #python JVTorcs.py --maxEpisodes=500000 --alg=2 --save=100 --port=3001 --rest=1 --lra=2 --lrc=3
+#python JVTorcs.py --maxEpisodes=500000 --alg=1 --save=100 --port=3002 --rest=1 --lra=2 --lrc=3
 
 restartN = 0
 if arguments.alg == 0:
@@ -136,7 +137,8 @@ with tf.device('/device:GPU:0'):
             #python3 JVTorcs.py --maxEpisodes=500000 --alg=1 --win=1
             #os.chdir(r'../torcs-1.3.7/BUILD/bin/')
             practice = "practice" + str(arguments.host_port%3001) + ".xml"
-            #p = subprocess.Popen('torcs -r ~/.torcs/config/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+            p = subprocess.Popen('/home/aluno/torcs-1.3.7/BUILD/bin/torcs -r /home/aluno/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+#            p = subprocess.Popen('torcs -r ~/.torcs/config/raceman/'+ practice +' -nofuel -nodamage', shell=True)
             os.chdir(dirpath)
 
         while True:
@@ -274,7 +276,11 @@ with tf.device('/device:GPU:0'):
             #bufState['distRaced'][0] = 0
         if curEpisode % arguments.saveEp == 0:
             saved_path = saver.save(sess, './' + algo + '/lr_'+str(lrActor)+'_'+str(curEpisode)+'')
+<<<<<<< HEAD
         if math.isnan(reward) == False and currentStep > 0 and restartN == 0:
+=======
+        if math.isnan(reward) == False and currentStep > 0:
+>>>>>>> e9e516f95f880723f0dc4e6c274ba01513eb5c4e
             maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
             maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
             print("==========================================")
