@@ -124,7 +124,7 @@ with tf.device('/device:GPU:0'):
             #python3 JVTorcs.py --maxEpisodes=500000 --alg=1 --win=1
             os.chdir(r'../torcs-1.3.7/BUILD/bin/')
             practice = "practice" + str(arguments.host_port%3001) + ".xml"
-            p = subprocess.Popen('/home/ttc-jv/torcs-1.3.7/BUILD/bin/torcs -r /home/ttc-jv/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+            p = subprocess.Popen('/home/aluno/torcs-1.3.7/BUILD/bin/torcs -r /home/aluno/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
             os.chdir(dirpath)
 
         while True:
