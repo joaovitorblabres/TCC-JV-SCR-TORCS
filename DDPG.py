@@ -18,14 +18,14 @@ tf.set_random_seed(3)
 
 #####################  hyper parameters  ####################
 
-LR_A = 0.0001    # learning rate for actor
-LR_C = 0.001    # learning rate for critic
+LR_A = 0.01    # learning rate for actor
+LR_C = 0.1    # learning rate for critic
 GAMMA = 0.99     # reward discount
 REPLACEMENT = [
     dict(name='soft', tau=0.001),
     dict(name='hard', rep_iter_a=600, rep_iter_c=500)
 ][0]            # you can try different target replacement strategies
-MEMORY_CAPACITY = 100000
+MEMORY_CAPACITY = 10000000
 BATCH_SIZE = 32
 
 RENDER = False

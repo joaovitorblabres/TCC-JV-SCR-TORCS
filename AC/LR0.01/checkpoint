@@ -1,0 +1,6 @@
+model_checkpoint_path: "lr_0.01_1000"
+all_model_checkpoint_paths: "lr_0.01_600"
+all_model_checkpoint_paths: "lr_0.01_700"
+all_model_checkpoint_paths: "lr_0.01_800"
+all_model_checkpoint_paths: "lr_0.01_900"
+all_model_checkpoint_paths: "lr_0.01_1000"
