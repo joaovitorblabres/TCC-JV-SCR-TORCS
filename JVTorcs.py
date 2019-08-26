@@ -136,7 +136,7 @@ with tf.device('/device:GPU:0'):
             #python3 JVTorcs.py --maxEpisodes=500000 --alg=1 --win=1
             #os.chdir(r'../torcs-1.3.7/BUILD/bin/')
             practice = "practice" + str(arguments.host_port%3001) + ".xml"
-            p = subprocess.Popen('torcs -r ~/.torcs/config/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+            #p = subprocess.Popen('torcs -r ~/.torcs/config/raceman/'+ practice +' -nofuel -nodamage', shell=True)
             os.chdir(dirpath)
 
         while True:
@@ -182,10 +182,10 @@ with tf.device('/device:GPU:0'):
                 buf, addr = sock.recvfrom(1000)
             except socket.error as msg:
                 #print("didn't get response from server when executing...")
-                subprocess.run(["killall", "torcs-bin"])
-                restartN += 1
-                break
-                #pass
+                #subprocess.run(["killall", "torcs-bin"])
+                #restartN = 1
+                #break
+                pass
 
             if verbose:
                 pass
@@ -234,7 +234,7 @@ with tf.device('/device:GPU:0'):
             if verbose:
                 print('Sending: ', buf)
             #print(currentStep)
-            if buf != None and oldStep != []:
+            if buf != None and oldStep != [] and restartN == 0:
                 try:
                     b = buf.encode()
                     sock.sendto(b, (arguments.host_ip, arguments.host_port))
@@ -273,8 +273,8 @@ with tf.device('/device:GPU:0'):
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
         if curEpisode % arguments.saveEp == 0:
-            saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
-        if math.isnan(reward) == False and currentStep > 0:
+            saved_path = saver.save(sess, './' + algo + '/lr_'+str(lrActor)+'_'+str(curEpisode)+'')
+        if math.isnan(reward) == False and currentStep > 0 and restartN == 0:
             maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
             maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
             print("==========================================")
@@ -285,8 +285,10 @@ with tf.device('/device:GPU:0'):
             print("Distance traveled:", traveled)
             print("Max distance traveled so far:", maximumDistanceTraveled)
             print("Max mean reward so far:", maximumRewardRecorded)
-            print("Number of restars:", restartN)
             print("==========================================")
+        if restartN == 1:
+            print("DEU RUIM ----- RESTARTOU")
+            restartN = 0
 
         curEpisode += 1
 
