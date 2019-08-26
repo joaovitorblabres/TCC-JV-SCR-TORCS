@@ -84,6 +84,7 @@ lrCs = [0.0001, 0.001, 0.01, 0.1]
 lrActor = lrAs[arguments.lra]
 lrCritic = lrCs[arguments.lrc]
 #python JVTorcs.py --maxEpisodes=500000 --alg=2 --save=100 --port=3001 --rest=1 --lra=2 --lrc=3
+#python JVTorcs.py --maxEpisodes=500000 --alg=1 --save=100 --port=3002 --rest=1 --lra=2 --lrc=3
 
 restartN = 0
 if arguments.alg == 0:
@@ -272,7 +273,7 @@ with tf.device('/device:GPU:0'):
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
         if curEpisode % arguments.saveEp == 0:
-            saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
+            saved_path = saver.save(sess, './' + algo + '/lr_'+str(lrActor)+'_'+str(curEpisode)+'')
         if math.isnan(reward) == False:
             maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
             maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
