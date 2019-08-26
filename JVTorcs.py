@@ -109,15 +109,9 @@ elif arguments.alg == 1:
     critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
     sess.run(tf.global_variables_initializer())
 elif arguments.alg == 2:
-<<<<<<< HEAD
-    var = 100000
-    actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, DDPG.LR_A, DDPG.REPLACEMENT)
-    critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, DDPG.LR_C, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
-=======
     var = 3
     actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, lrActor, DDPG.REPLACEMENT)
     critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, lrCritic, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
->>>>>>> c656e45aa4d4b530dcb8555b1167f088be85e314
     actor.add_grad_to_graph(critic.a_grads)
     sess.run(tf.global_variables_initializer())
     M = DDPG.Memory(DDPG.MEMORY_CAPACITY, dims=2 * DDPG.state_dim + DDPG.action_dim + 1)
