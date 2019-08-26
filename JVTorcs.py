@@ -98,7 +98,7 @@ elif arguments.alg == 1:
     critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
     sess.run(tf.global_variables_initializer())
 elif arguments.alg == 2:
-    var = 3
+    var = 100000
     actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, DDPG.LR_A, DDPG.REPLACEMENT)
     critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, DDPG.LR_C, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
     actor.add_grad_to_graph(critic.a_grads)
@@ -123,9 +123,9 @@ with tf.device('/device:GPU:0'):
             os.chdir(dirpath)
         else:
             #python3 JVTorcs.py --maxEpisodes=500000 --alg=1 --win=1
-            os.chdir(r'../torcs-1.3.7/BUILD/bin/')
+            #os.chdir(r'../torcs-1.3.7/BUILD/bin/')
             practice = "practice" + str(arguments.host_port%3001) + ".xml"
-            p = subprocess.Popen('/home/ttc-jv/torcs-1.3.7/BUILD/bin/torcs -r /home/ttc-jv/torcs-1.3.7/src/raceman/'+ practice +' -nofuel -nodamage', shell=True)
+            p = subprocess.Popen('torcs -r ~/.torcs/config/raceman/'+ practice +' -nofuel -nodamage', shell=True)
             os.chdir(dirpath)
 
         while True:
@@ -161,6 +161,7 @@ with tf.device('/device:GPU:0'):
         oldStep = []
         state = []
         traveled = -500
+        reward = 0
 
         while True:
             # wait for an answer from server
@@ -215,7 +216,7 @@ with tf.device('/device:GPU:0'):
                     elif arguments.alg == 1:
                         buf, action, state, bufState = d.drive(buf.decode(), actor)
                     elif arguments.alg == 2:
-                        buf, action, state, bufState = d.drive(buf.decode(), actor, 1)
+                        buf, action, state, bufState = d.drive(buf.decode(), actor, 1, var)
             else:
                 buf = '(meta 1)'
 
@@ -247,7 +248,7 @@ with tf.device('/device:GPU:0'):
                     M.store_transition(oldStep, action, reward[0] / 10, state)
 
                     if M.pointer > DDPG.MEMORY_CAPACITY:
-                        var *= .9995    # decay the action randomness
+                        var *= .99995    # decay the action randomness
                         b_M = M.sample(DDPG.BATCH_SIZE)
                         b_s = b_M[:, :DDPG.state_dim]
                         b_a = b_M[:, DDPG.state_dim: DDPG.state_dim + DDPG.action_dim]
@@ -262,7 +263,7 @@ with tf.device('/device:GPU:0'):
             #bufState['distRaced'][0] = 0
         if curEpisode % arguments.saveEp == 0:
             saved_path = saver.save(sess, './' + algo + '/lr_'+str(0.001)+'_'+str(curEpisode)+'')
-        if math.isnan(reward) == False:
+        if math.isnan(reward) == False and currentStep > 0:
             maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
             maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)
             print("==========================================")
