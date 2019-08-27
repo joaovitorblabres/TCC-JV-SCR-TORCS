@@ -12,6 +12,7 @@ import DDPG
 import subprocess
 import os
 import math
+from OU import OU
 
 if __name__ == '__main__':
     pass
@@ -78,7 +79,9 @@ maximumDistanceTraveled = -5000
 traveled = -500
 dirpath = os.getcwd()
 algo = ''
-lrAs = [0.0001, 0.001, 0.01, 0.1]
+OU = OU()
+train_indicator = 1
+lrAs = [0.0001, 0.001, 0.01, 0.1, 1]
 lrCs = [0.0001, 0.001, 0.01, 0.1]
 
 lrActor = lrAs[arguments.lra]
@@ -110,12 +113,11 @@ elif arguments.alg == 1:
     critic = AC.Critic(sess, n_features=AC.N_F, lr=AC.LR_C)     # we need a good teacher, so the teacher should learn faster than the actor
     sess.run(tf.global_variables_initializer())
 elif arguments.alg == 2:
-    var = 3
+    var = 1
     actor = DDPG.Actor(sess, DDPG.action_dim, DDPG.action_bound, lrActor, DDPG.REPLACEMENT)
-    critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, lrCritic, DDPG.GAMMA, DDPG.REPLACEMENT, actor.a, actor.a_)
-    actor.add_grad_to_graph(critic.a_grads)
+    critic = DDPG.Critic(sess, DDPG.state_dim, DDPG.action_dim, lrCritic, DDPG.GAMMA, DDPG.REPLACEMENT)
     sess.run(tf.global_variables_initializer())
-    M = DDPG.Memory(DDPG.MEMORY_CAPACITY, dims=2 * DDPG.state_dim + DDPG.action_dim + 1)
+    M = DDPG.Memory(DDPG.MEMORY_CAPACITY)
 saver = tf.train.Saver()
 if arguments.restore == 1:
     if arguments.system == 0:
@@ -127,7 +129,7 @@ if arguments.restore == 1:
     lastModel = line.split(' ')[1].replace('\"', '').replace('\n', '')
     saver.restore(sess, restore + lastModel)
     curEpisode = int(lastModel.split('_')[2]) + 1
-with tf.device('/device:GPU:0'):
+with tf.device('/device:CPU:0'):
     while not shutdownClient:
         if arguments.system == 0:
             os.chdir(r'C:\\Program Files (x86)\\torcs\\')
@@ -175,6 +177,9 @@ with tf.device('/device:GPU:0'):
         state = []
         traveled = -500
         reward = 0
+        epsilon = 1
+        if alg == 2:
+            buf, action, state, bufState = d.drive("b'(angle 1.74846e-07)(curLapTime -0.982)(damage 0)(distFromStart 3673.57)(distRaced 0)(fuel 94)(gear 0)(lastLapTime 0)(opponents 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200)(racePos 1)(rpm 942.478)(speedX 0)(speedY 0)(speedZ -2.54862e-05)(track 5 5.17638 5.7735 7.07107 10 14.619 19.3185 28.7939 57.3687 200 57.3684 28.7938 19.3185 14.619 10 7.07107 5.7735 5.17638 5)(trackPos 9.53674e-08)(wheelSpinVel 0 0 0 0)(z 0.345258)(focus -1 -1 -1 -1 -1)(x 351.638)(y 20.5002)(roll 0)(pitch 0.00574034)(yaw -2.20934e-06)(speedGlobalX 0)(speedGlobalY 0)\x00'", actor, 1, 1, [0,0,0])
 
         while True:
             # wait for an answer from server
@@ -220,7 +225,6 @@ with tf.device('/device:GPU:0'):
                     break
 
             currentStep += 1
-            bufState = 0
             action = None
             if currentStep != arguments.max_steps:
                 if buf != None:
@@ -228,15 +232,61 @@ with tf.device('/device:GPU:0'):
                         buf, action, state, bufState = d.drive(buf.decode(), RL)
                     elif arguments.alg == 1:
                         buf, action, state, bufState = d.drive(buf.decode(), actor)
-                    elif arguments.alg == 2:
-                        buf, action, state, bufState = d.drive(buf.decode(), actor, 1, var)
             else:
                 buf = '(meta 1)'
 
             if verbose:
                 print('Sending: ', buf)
             #print(currentStep)
+            #print(bufState)
             if buf != None and oldStep != [] and restartN == 0:
+                if arguments.alg == 0:
+                    reward = rw.lng_trans(bufState)
+                    episode_rewards_sum += reward
+                    d.atualiza(RL, oldStep, action, reward, state)
+                    if (currentStep > 200) and (currentStep % 20 == 0):
+                        RL.learn()
+                elif arguments.alg == 1:
+                    reward = rw.lng_trans(bufState)
+                    episode_rewards_sum += reward
+                    td_error = critic.learn(oldStep, reward, state)
+                    actor.learn(oldStep, action, td_error)
+                elif arguments.alg == 2:
+                    loss = 0
+                    epsilon -= 1.0 / 100000.
+                    a_t = np.zeros([1,3])
+                    noise_t = np.zeros([1,3])
+
+                    #print(bufState)
+                    a_t_original = actor.model.predict(oldStep.reshape(1, oldStep.shape[0]))
+                    noise_t[0][0] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][0],  0.0 , 0.60, 0.30)
+                    noise_t[0][1] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][1],  0.5 , 1.00, 0.10)
+                    noise_t[0][2] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][2], -0.1 , 1.00, 0.05)
+
+                    a_t[0][0] = a_t_original[0][0] + noise_t[0][0]
+                    a_t[0][1] = a_t_original[0][1] + noise_t[0][1]
+                    a_t[0][2] = a_t_original[0][2] + noise_t[0][2]
+                    buf, action, state, bufState = d.drive(buf.decode(), actor, 1, var, a_t[0])
+
+                    reward = rw.lng_trans(bufState)
+                    episode_rewards_sum += reward
+                    M.add(oldStep, action, reward[0], state)      #Add replay buffer
+
+                    #Do the batch update
+                    batch = M.getBatch(32)
+                    states = np.asarray([e[0] for e in batch])
+                    actions = np.asarray([e[1] for e in batch])
+                    rewards = np.asarray([e[2] for e in batch])
+                    new_states = np.asarray([e[3] for e in batch])
+                    y_t = np.asarray([e[1] for e in batch])
+
+                    target_q_values = critic.target_model.predict([new_states, actor.target_model.predict(new_states)])
+                    loss += critic.model.train_on_batch([states,actions], y_t)
+                    a_for_grad = actor.model.predict(states)
+                    grads = critic.gradients(states, a_for_grad)
+                    actor.train(states, grads)
+                    actor.target_train()
+                    critic.target_train()
                 try:
                     b = buf.encode()
                     sock.sendto(b, (arguments.host_ip, arguments.host_port))
@@ -248,34 +298,12 @@ with tf.device('/device:GPU:0'):
                     traveled = max(float(bufState['distRaced'][0]), traveled)
                 except:
                     pass
-                reward = rw.lng_trans_heavy_penalty(bufState)
-                episode_rewards_sum += reward
-                if arguments.alg == 0:
-                    d.atualiza(RL, oldStep, action, reward, state)
-                    if (currentStep > 200) and (currentStep % 20 == 0):
-                        RL.learn()
-                elif arguments.alg == 1:
-                    td_error = critic.learn(oldStep, reward, state)
-                    actor.learn(oldStep, action, td_error)
-                elif arguments.alg == 2:
-                    M.store_transition(oldStep, action, reward[0] / 10, state)
-
-                    if M.pointer > DDPG.MEMORY_CAPACITY:
-                        var *= .99995    # decay the action randomness
-                        b_M = M.sample(DDPG.BATCH_SIZE)
-                        b_s = b_M[:, :DDPG.state_dim]
-                        b_a = b_M[:, DDPG.state_dim: DDPG.state_dim + DDPG.action_dim]
-                        b_r = b_M[:, -DDPG.state_dim - 1: -DDPG.state_dim]
-                        b_s_ = b_M[:, -DDPG.state_dim:]
-
-                        critic.learn(b_s, b_a, b_r, b_s_)
-                        actor.learn(b_s)
 
         #print(bufState)
         #if bufState['distRaced'][0] == None:
             #bufState['distRaced'][0] = 0
         if curEpisode % arguments.saveEp == 0:
-            saved_path = saver.save(sess, './' + algo + '/lr_'+str(lrActor)+'_'+str(curEpisode)+'')
+            saved_path = saver.save(sess, './' + algo + '/p2lr_'+str(lrActor)+'_'+str(curEpisode)+'')
         if math.isnan(reward) == False and currentStep > 0 and restartN == 0:
             maximumDistanceTraveled = max(traveled, maximumDistanceTraveled)
             maximumRewardRecorded = max(episode_rewards_sum/currentStep, maximumRewardRecorded)

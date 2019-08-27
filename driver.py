@@ -49,7 +49,7 @@ class Driver(object):
 
         return self.parser.stringify({'init': self.angles})
 
-    def drive(self, msg, RL, alg=0, var=0):
+    def drive(self, msg, RL, alg=0, var=0, at=0):
         new_msg = self.state.setFromMsg(msg)
         #print(new_msg)
         ## ADICIONAR O TREINAMENTO AQUI
@@ -58,10 +58,10 @@ class Driver(object):
         	for i in val:
         		n.append(float(i))
         new = np.array(n)
-        action = RL.choose_action(new)
         #print(action)
         #action = tm.train(np.array(n))
         if alg == 0:
+            action = RL.choose_action(new)
             if action == 0:
                 self.steer(1, 0)
             elif action == 1:
@@ -71,6 +71,7 @@ class Driver(object):
             elif action == 3:
                 self.speed(0, 1)
         elif alg == 1:
+            action = at
             action = np.clip(np.random.normal(action, var), [-1, 0, 0], [1, 1, 1])    # add randomness to action selection for exploration
             self.steer(steeringRight=action[0], steeringLeft=0)
             self.speed(action[1], action[2])

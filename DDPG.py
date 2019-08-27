@@ -12,6 +12,9 @@ gym 0.8.0
 
 import tensorflow as tf
 import numpy as np
+import math
+from keras.initializers import VarianceScaling
+import keras.backend as K
 
 np.random.seed(4937)
 tf.set_random_seed(3)
@@ -28,9 +31,6 @@ REPLACEMENT = [
 MEMORY_CAPACITY = 1000000
 BATCH_SIZE = 32
 
-RENDER = False
-OUTPUT_GRAPH = True
-
 ###############################  Actor  ####################################
 
 
@@ -40,154 +40,126 @@ class Actor(object):
         self.a_dim = action_dim
         self.action_bound = action_bound
         self.lr = learning_rate
+        self.TAU = 0.001
         self.replacement = replacement
         self.t_replace_counter = 0
+        K.set_session(sess)
+        #Now create the model
+        self.model , self.weights, self.state = self.create_actor_network(30, 3)
+        self.target_model, self.target_weights, self.target_state = self.create_actor_network(30, 3)
+        self.action_gradient = tf.placeholder(tf.float32,[None, 3])
+        self.params_grad = tf.gradients(self.model.output, self.weights, -self.action_gradient)
+        grads = zip(self.params_grad, self.weights)
+        self.optimize = tf.train.AdamOptimizer(self.lr).apply_gradients(grads)
+        self.sess.run(tf.global_variables_initializer())
 
-        with tf.variable_scope('Actor'):
-            # input s, output a
-            self.a = self._build_net(S, scope='eval_net', trainable=True)
+    def train(self, states, action_grads):
+        self.sess.run(self.optimize, feed_dict={
+            self.state: states,
+            self.action_gradient: action_grads
+        })
 
-            # input s_, output a, get a_ for critic
-            self.a_ = self._build_net(S_, scope='target_net', trainable=False)
+    def target_train(self):
+        actor_weights = self.model.get_weights()
+        actor_target_weights = self.target_model.get_weights()
+        for i in range(len(actor_weights)):
+            actor_target_weights[i] = self.TAU * actor_weights[i] + (1 - self.TAU)* actor_target_weights[i]
+        self.target_model.set_weights(actor_target_weights)
 
-        self.e_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/eval_net')
-        self.t_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/target_net')
-
-        if self.replacement['name'] == 'hard':
-            self.t_replace_counter = 0
-            self.hard_replace = [tf.assign(t, e) for t, e in zip(self.t_params, self.e_params)]
-        else:
-            self.soft_replace = [tf.assign(t, (1 - self.replacement['tau']) * t + self.replacement['tau'] * e)
-                                 for t, e in zip(self.t_params, self.e_params)]
-
-    def _build_net(self, s, scope, trainable):
-        with tf.variable_scope(scope):
-            init_w = tf.random_normal_initializer(0., 0.3)
-            init_b = tf.constant_initializer(0.1)
-            net = tf.layers.dense(s, 300, activation=tf.nn.relu,
-                                  kernel_initializer=init_w, bias_initializer=init_b, name='l1',
-                                  trainable=trainable)
-            net2 = tf.layers.dense(net, 600, activation=tf.nn.relu,
-                                  kernel_initializer=init_w, bias_initializer=init_b, name='l2',
-                                  trainable=trainable)
-            with tf.variable_scope('a'):
-                actions = tf.layers.dense(net2, self.a_dim, activation=tf.nn.tanh, kernel_initializer=init_w,
-                                          bias_initializer=init_b, name='a', trainable=trainable)
-                scaled_a = tf.multiply(actions, self.action_bound, name='scaled_a')  # Scale output to -action_bound to action_bound
-        return scaled_a
-
-    def learn(self, s):   # batch update
-        self.sess.run(self.train_op, feed_dict={S: s})
-
-        if self.replacement['name'] == 'soft':
-            self.sess.run(self.soft_replace)
-        else:
-            if self.t_replace_counter % self.replacement['rep_iter_a'] == 0:
-                self.sess.run(self.hard_replace)
-            self.t_replace_counter += 1
-
-    def choose_action(self, s):
-        s = s[np.newaxis, :]    # single state
-        return self.sess.run(self.a, feed_dict={S: s})[0]  # single action
-
-    def add_grad_to_graph(self, a_grads):
-        with tf.variable_scope('policy_grads'):
-            # ys = policy;
-            # xs = policy's parameters;
-            # a_grads = the gradients of the policy to get more Q
-            # tf.gradients will calculate dys/dxs with a initial gradients for ys, so this is dq/da * da/dparams
-            self.policy_grads = tf.gradients(ys=self.a, xs=self.e_params, grad_ys=a_grads)
-
-        with tf.variable_scope('A_train'):
-            opt = tf.train.AdamOptimizer(-self.lr)  # (- learning rate) for ascent policy
-            self.train_op = opt.apply_gradients(zip(self.policy_grads, self.e_params))
+    def create_actor_network(self, state_size, action_dim):
+        S = tf.keras.Input(shape=[state_size])
+        h0 = tf.keras.layers.Dense(300, activation='relu')(S)
+        h1 = tf.keras.layers.Dense(600, activation='relu')(h0)
+        Steering = tf.keras.layers.Dense(1,activation='tanh',kernel_initializer=VarianceScaling(scale=1e-4))(h1)
+        Acceleration = tf.keras.layers.Dense(1,activation='sigmoid',kernel_initializer=VarianceScaling(scale=1e-4))(h1)
+        Brake = tf.keras.layers.Dense(1,activation='sigmoid',kernel_initializer=VarianceScaling(scale=1e-4))(h1)
+        V = tf.keras.layers.Concatenate()([Steering,Acceleration,Brake])
+        model = tf.keras.Model(inputs=S, outputs=V)
+        return model, model.trainable_weights, S
 
 
 ###############################  Critic  ####################################
 
 class Critic(object):
-    def __init__(self, sess, state_dim, action_dim, learning_rate, gamma, replacement, a, a_):
+    def __init__(self, sess, state_dim, action_dim, learning_rate, gamma, replacement):
         self.sess = sess
         self.s_dim = state_dim
         self.a_dim = action_dim
         self.lr = learning_rate
         self.gamma = gamma
+        self.TAU = 0.001
         self.replacement = replacement
+        K.set_session(sess)
 
-        with tf.variable_scope('Critic'):
-            # Input (s, a), output q
-            self.a = tf.stop_gradient(a)    # stop critic update flows to actor
-            self.q = self._build_net(S, self.a, 'eval_net', trainable=True)
+        self.model, self.action, self.state = self._build_net()
+        self.target_model, self.target_action, self.target_state = self._build_net()
+        self.action_grads = tf.gradients(self.model.output, self.action)  #GRADIENTS for policy update
+        self.sess.run(tf.global_variables_initializer())
 
-            # Input (s_, a_), output q_ for q_target
-            self.q_ = self._build_net(S_, a_, 'target_net', trainable=False)    # target_q is based on a_ from Actor's target_net
+    def gradients(self, states, actions):
+        return self.sess.run(self.action_grads, feed_dict={
+            self.state: states,
+            self.action: actions
+        })[0]
 
-            self.e_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/eval_net')
-            self.t_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/target_net')
+    def _build_net(self):
+        S = tf.keras.Input(shape=[30])
+        A = tf.keras.Input(shape=[3],name='action2')
+        w1 = tf.keras.layers.Dense(300, activation='relu')(S)
+        a1 = tf.keras.layers.Dense(600, activation='linear')(A)
+        h1 = tf.keras.layers.Dense(600, activation='linear')(w1)
+        h2 = tf.keras.layers.add([h1,a1])
+        h3 = tf.keras.layers.Dense(600, activation='relu')(h2)
+        V = tf.keras.layers.Dense(3,activation='linear')(h3)
+        model = tf.keras.Model(inputs=[S,A], outputs=V)
+        adam = tf.keras.optimizers.Adam(lr=self.lr)
+        model.compile(loss='mse', optimizer=adam)
+        return model, A, S
 
-        with tf.variable_scope('target_q'):
-            self.target_q = R + self.gamma * self.q_
-
-        with tf.variable_scope('TD_error'):
-            self.loss = tf.reduce_mean(tf.squared_difference(self.target_q, self.q))
-
-        with tf.variable_scope('C_train'):
-            self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
-
-        with tf.variable_scope('a_grad'):
-            self.a_grads = tf.gradients(self.q, a)[0]   # tensor of gradients of each sample (None, a_dim)
-
-        if self.replacement['name'] == 'hard':
-            self.t_replace_counter = 0
-            self.hard_replacement = [tf.assign(t, e) for t, e in zip(self.t_params, self.e_params)]
-        else:
-            self.soft_replacement = [tf.assign(t, (1 - self.replacement['tau']) * t + self.replacement['tau'] * e)
-                                     for t, e in zip(self.t_params, self.e_params)]
-
-    def _build_net(self, s, a, scope, trainable):
-        with tf.variable_scope(scope):
-            init_w = tf.random_normal_initializer(0., 0.1)
-            init_b = tf.constant_initializer(0.1)
-
-            with tf.variable_scope('l1'):
-                n_l1 = 300
-                w1_s = tf.get_variable('w1_s', [self.s_dim, n_l1], initializer=init_w, trainable=trainable)
-                w1_a = tf.get_variable('w1_a', [self.a_dim, n_l1], initializer=init_w, trainable=trainable)
-                b1 = tf.get_variable('b1', [1, n_l1], initializer=init_b, trainable=trainable)
-                net = tf.nn.relu(tf.matmul(s, w1_s) + tf.matmul(a, w1_a) + b1)
-
-            with tf.variable_scope('q'):
-                q = tf.layers.dense(net, 3, kernel_initializer=init_w, bias_initializer=init_b, trainable=trainable)   # Q(s,a)
-        return q
-
-    def learn(self, s, a, r, s_):
-        self.sess.run(self.train_op, feed_dict={S: s, self.a: a, R: r, S_: s_})
-        if self.replacement['name'] == 'soft':
-            self.sess.run(self.soft_replacement)
-        else:
-            if self.t_replace_counter % self.replacement['rep_iter_c'] == 0:
-                self.sess.run(self.hard_replacement)
-            self.t_replace_counter += 1
-
+    def target_train(self):
+        critic_weights = self.model.get_weights()
+        critic_target_weights = self.target_model.get_weights()
+        for i in range(len(critic_weights)):
+            critic_target_weights[i] = self.TAU * critic_weights[i] + (1 - self.TAU)* critic_target_weights[i]
+        self.target_model.set_weights(critic_target_weights)
 
 #####################  Memory  ####################
 
+from collections import deque
+import random
 class Memory(object):
-    def __init__(self, capacity, dims):
-        self.capacity = capacity
-        self.data = np.zeros((capacity, dims))
-        self.pointer = 0
+    def __init__(self, buffer_size):
+        self.buffer_size = buffer_size
+        self.num_experiences = 0
+        self.buffer = deque()
 
-    def store_transition(self, s, a, r, s_):
-        transition = np.hstack((s, a, [r], s_))
-        index = self.pointer % self.capacity  # replace the old memory with new memory
-        self.data[index, :] = transition
-        self.pointer += 1
+    def getBatch(self, batch_size):
+        # Randomly sample batch_size examples
+        if self.num_experiences < batch_size:
+            return random.sample(self.buffer, self.num_experiences)
+        else:
+            return random.sample(self.buffer, batch_size)
 
-    def sample(self, n):
-        assert self.pointer >= self.capacity, 'Memory has not been fulfilled'
-        indices = np.random.choice(self.capacity, size=n)
-        return self.data[indices, :]
+    def size(self):
+        return self.buffer_size
+
+    def add(self, state, action, reward, new_state):
+        experience = (state, action, reward, new_state)
+        if self.num_experiences < self.buffer_size:
+            self.buffer.append(experience)
+            self.num_experiences += 1
+        else:
+            self.buffer.popleft()
+            self.buffer.append(experience)
+
+    def count(self):
+        # if buffer is full, return buffer size
+        # otherwise, return experience counter
+        return self.num_experiences
+
+    def erase(self):
+        self.buffer = deque()
+        self.num_experiences = 0
 
 state_dim = 30
 action_dim = 3
