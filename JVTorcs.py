@@ -178,7 +178,7 @@ with tf.device('/device:CPU:0'):
         traveled = -500
         reward = 0
         epsilon = 1
-        if alg == 2:
+        if arguments.alg == 2:
             buf, action, state, bufState = d.drive("b'(angle 1.74846e-07)(curLapTime -0.982)(damage 0)(distFromStart 3673.57)(distRaced 0)(fuel 94)(gear 0)(lastLapTime 0)(opponents 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200)(racePos 1)(rpm 942.478)(speedX 0)(speedY 0)(speedZ -2.54862e-05)(track 5 5.17638 5.7735 7.07107 10 14.619 19.3185 28.7939 57.3687 200 57.3684 28.7938 19.3185 14.619 10 7.07107 5.7735 5.17638 5)(trackPos 9.53674e-08)(wheelSpinVel 0 0 0 0)(z 0.345258)(focus -1 -1 -1 -1 -1)(x 351.638)(y 20.5002)(roll 0)(pitch 0.00574034)(yaw -2.20934e-06)(speedGlobalX 0)(speedGlobalY 0)\x00'", actor, 1, 1, [0,0,0])
 
         while True:

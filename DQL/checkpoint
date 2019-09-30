@@ -1,0 +1,6 @@
+model_checkpoint_path: "p2lr_0.1_2700"
+all_model_checkpoint_paths: "p2lr_0.1_2300"
+all_model_checkpoint_paths: "p2lr_0.1_2400"
+all_model_checkpoint_paths: "p2lr_0.1_2500"
+all_model_checkpoint_paths: "p2lr_0.1_2600"
+all_model_checkpoint_paths: "p2lr_0.1_2700"
